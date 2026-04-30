@@ -3,7 +3,9 @@ const morgan = require('morgan');
 const app = express();
 
 //importo las rutas de usuarios
-const usuarioRutas = require('./usuario');
+const usuarioRutas = require('./recursos/usuarios/usuarios-rutas');
+
+
 
 //Logger
 app.use(morgan('dev'));

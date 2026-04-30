@@ -1,0 +1,1 @@
+//acá va la entidad de usuarios, con sus atributos y métodos

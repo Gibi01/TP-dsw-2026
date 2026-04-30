@@ -1,9 +1,17 @@
 const express = require('express');
 const router = express.Router();
+express(express.json()); // Middleware para parsear JSON en el cuerpo de las solicitudes
+
+//esto representaría la base de datos
+const usuarios = [{
+    id: 1,
+    nombre: 'Inservible',
+    email: 'pasamelabotella@gmail.com'
+}];
 
 //Muestro todos los usuarios
 router.get('/', (req, res) => {
-    res.send('Lista de todos los usuarios');
+    res.json(usuarios);
 });
 
 //Muestro 1 usuario específico
@@ -13,7 +21,6 @@ router.get('/:id', (req, res) => {
 
 //Crear usuario (solo muestra un mensaje de que se creó el usuario, no lo crea realmente)
 router.post('/crear', (req, res) => {
-    res.send('Usuario creado');
 });
 
 //Actualizar usuario (solo muestra un mensaje de que se actualizó el usuario, no lo actualiza realmente)
