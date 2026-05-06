@@ -1,0 +1,38 @@
+### obtener todos los sanatorios
+
+GET http://localhost:3000/api/sanatorios
+
+### obtener un sanatorio
+
+get http://localhost:3000/api/sanatorios/1
+
+### crear un nuevo sanatorio
+
+POST http://localhost:3000/api/sanatorios
+Content-Type: application/json
+
+{
+  "nombre": "El continental"
+}
+### Modificar elemento completo 
+put http://localhost:3000/api/sanatorios/1
+Content-Type: application/json
+
+{
+  "nombre": "Yot", 
+  "marca": "Sancor", 
+  "presentacion": null, 
+  "unidadMedida": "kilos"
+
+}
+### Modificar parte de elemento
+PATCH http://localhost:3000/api/sanatorios/1
+Content-Type: application/json
+
+{
+  "marca": "Ilolay"
+
+}
+###
+DELETE http://localhost:3000/api/sanatorios/5
+Content-Type: application/json
