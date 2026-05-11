@@ -9,14 +9,13 @@ function sanitizesanatorioInput(
   res: Response,
   next: NextFunction
 ) {
-  req.body.sanitizedInput = {
-      id: req.body.id,
-      nombre: req.body.nombre,
-
- 
+  req.body.sanitizedInput = 
+  {
+    id: req.body.id,
+    nombre: req.body.nombre,
   };
-  //more checks here
 
+  //more checks here
   Object.keys(req.body.sanitizedInput).forEach((key) => {
     if (req.body.sanitizedInput[key] === undefined) {
       delete req.body.sanitizedInput[key];
@@ -25,14 +24,19 @@ function sanitizesanatorioInput(
   next();
 }
 
+ 
+
 async function findAll(req: Request, res: Response) {
-  try {
+  try 
+  {
     const sanatorios = await em.find(
       Sanatorio,
       {},
      );
     res.status(200).json({ message: 'encontrado todos los sanatorios', data: sanatorios });
-  } catch (error: any) {
+  } 
+  catch (error: any) 
+  {
     res.status(500).json({ message: error.message });
   }
 }
@@ -55,7 +59,9 @@ async function add(req: Request, res: Response) {
     const sanatorio = em.create(Sanatorio, req.body.sanitizedInput);
     await em.flush();
     res.status(201).json({ message: 'sanatorio Creado', data: sanatorio });
-  } catch (error: any) {
+  } 
+  catch (error: any) 
+  {
     res.status(500).json({ message: error.message });
   }
 }
@@ -75,11 +81,14 @@ async function update(req: Request, res: Response) {
 }
 
 async function remove(req: Request, res: Response) {
-  try {
+  try 
+  {
     const id = Number.parseInt(req.params.id);
     const sanatorio = em.getReference(Sanatorio, id);
     await em.removeAndFlush(sanatorio);
-  } catch (error: any) {
+  } 
+  catch (error: any) 
+  {
     res.status(500).json({ message: error.message });
   }
 }

@@ -17,6 +17,7 @@ export const orm = await MikroORM.init({
     ignoreSchema: [],
   },
 });
+
 export const syncSchema = async () => {
   const generator = orm.getSchemaGenerator();
   /*   
