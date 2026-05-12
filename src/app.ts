@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { orm, syncSchema } from './shared/orm.js';
 import { RequestContext } from '@mikro-orm/core';
 import sanatorioRouter from './recursos/sanatorio/sanatorio.rutas.js';
+import usuarioRouter from './recursos/usuarios/usuario.rutas.js';
 import morgan from 'morgan';
 
 const app = express();
@@ -17,10 +18,12 @@ app.use((req, res, next) => {
 app.use(morgan('dev')); // Agrega el middleware de Morgan para el logging de solicitudes
 
 app.use('/api/sanatorios', sanatorioRouter);
+app.use('/api/usuarios', usuarioRouter);
 
 /* escalable -> CODED BY CLAUDE -> NOT CHECKEADO
 const routes: [string, Router][] = [
   ['/api/sanatorios', sanatorioRouter],
+  ['/api/usuarios', usuarioRouter],
   // ['/api/pacientes', pacienteRouter],
 ];
 

@@ -8,13 +8,13 @@ export const orm = await MikroORM.init({
   entitiesTs: ['src/**/*.entidad.ts'],
   dbName: 'tp',
   driver: MySqlDriver,
-  clientUrl: 'mysql://dsw:1234@localhost:3306/tp',
+  clientUrl: 'mysql://dsw:1234@localhost:3306/tp', //donde se encuentra la base de datos
   highlighter: new SqlHighlighter(),
   debug: true,
   schemaGenerator: {
-    disableForeignKeys: true,
-    createForeignKeyConstraints: true,
-    ignoreSchema: [],
+    disableForeignKeys: true, //desabilita las claves foráneas para evitar problemas al eliminar tablas
+    createForeignKeyConstraints: true, //habilita la creación de claves foráneas al generar el esquema
+    ignoreSchema: [], 
   },
 });
 

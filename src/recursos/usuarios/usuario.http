@@ -1,0 +1,43 @@
+### obtener todos los sanatorios
+
+GET http://localhost:3000/api/usuarios
+
+### obtener un sanatorio
+
+GET http://localhost:3000/api/usuarios/1
+
+### crear un nuevo sanatorio
+
+POST http://localhost:3000/api/usuarios
+Content-Type: application/json
+
+{
+  "nombre": "El continental",
+  "apellido": "Gomez",
+  "email": "el.gomez@example.com",
+  "password": "contraseña123",
+  "rol": "usuario"
+}
+### Modificar elemento completo 
+put http://localhost:3000/api/usuarios/1
+Content-Type: application/json
+
+{
+  "nombre": "Kira", 
+  "apellido": "Yoshikage", 
+  "email": "kira.yoshikage@example.com", 
+  "password": "contraseña123",
+  "rol": "usuario"
+}
+
+### Modificar parte de elemento
+PATCH http://localhost:3000/api/usuarios/1
+Content-Type: application/json
+
+{
+  "nombre": "Antonio"
+
+}
+###
+DELETE http://localhost:3000/api/usuarios/1
+Content-Type: application/json
