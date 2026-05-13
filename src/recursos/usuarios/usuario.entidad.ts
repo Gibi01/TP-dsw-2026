@@ -3,6 +3,9 @@ import {
   Property,
   Cascade,
   PrimaryKey,
+  ForeignKeyConstraintViolationException,
+  ManyToMany,
+  ManyToOne,
 } from '@mikro-orm/core';
 
 import { BaseEntity } from '../../shared/baseEntity.entity.js';
@@ -27,5 +30,8 @@ export class Usuario extends BaseEntity {
   @Property({ nullable: false })
   rol!: string;
 
+  //usuario asociado
+  @ManyToOne(() => Usuario, { nullable: true })
+  usuario!: Usuario;
 
 }

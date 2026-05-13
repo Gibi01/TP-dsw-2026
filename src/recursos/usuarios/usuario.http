@@ -4,7 +4,7 @@ GET http://localhost:3000/api/usuarios
 
 ### obtener un sanatorio
 
-GET http://localhost:3000/api/usuarios/1
+GET http://localhost:3000/api/usuarios/5
 
 ### crear un nuevo sanatorio
 
@@ -16,7 +16,8 @@ Content-Type: application/json
   "apellido": "Gomez",
   "email": "el.gomez@example.com",
   "password": "contraseña123",
-  "rol": "usuario"
+  "rol": "usuario",
+  "usuario": "elgomez"
 }
 ### Modificar elemento completo 
 put http://localhost:3000/api/usuarios/1
@@ -39,5 +40,5 @@ Content-Type: application/json
 
 }
 ###
-DELETE http://localhost:3000/api/usuarios/1
+DELETE http://localhost:3000/api/usuarios/5
 Content-Type: application/json

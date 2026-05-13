@@ -18,6 +18,7 @@ function sanitizeusuarioInput(
     password: req.body.password,
     email: req.body.email,
     rol: req.body.rol,
+    id_asociado: req.body.id_asociado,
   };
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {

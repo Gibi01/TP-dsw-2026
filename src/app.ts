@@ -17,23 +17,10 @@ app.use((req, res, next) => {
 
 app.use(morgan('dev')); // Agrega el middleware de Morgan para el logging de solicitudes
 
+//Cruds
 app.use('/api/sanatorios', sanatorioRouter);
 app.use('/api/usuarios', usuarioRouter);
 
-/* escalable -> CODED BY CLAUDE -> NOT CHECKEADO
-const routes: [string, Router][] = [
-  ['/api/sanatorios', sanatorioRouter],
-  ['/api/usuarios', usuarioRouter],
-  // ['/api/pacientes', pacienteRouter],
-];
-
-app.use((req, res, next) => {
-  RequestContext.create(orm.em, next);
-});
-
-routes.forEach(([path, router]) => app.use(path, router));
-});
-*/
 
 await syncSchema(); // never in production
 
