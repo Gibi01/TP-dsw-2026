@@ -30,6 +30,7 @@ export class Usuario extends BaseEntity {
   rol!: string;
 
   //muchos usuarios tienen un usuario 'lider' o 'padre', y un usuario puede ser el lider de muchos usuarios
+  //genera clave foránea en la tabla de usuarios que referencia a otro usuario
   @ManyToOne(() => Usuario, { nullable: true })
   padre?: Usuario;
 
