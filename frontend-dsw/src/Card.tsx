@@ -1,7 +1,7 @@
 export default function Card({
-  title = "This is heading",
-  description = "Card description with lots of great facts and interesting details.",
-  href = "#",
+  title = "titulo no definido",
+  description = "descripción no definida",
+  href = "#"
 }) {
   return (
     <a
@@ -9,11 +9,13 @@ export default function Card({
       className="
         group
         relative
-        block
-        max-w-[262px]
-        max-h-[120px]
+        inline-block
+        w-full
+        h-35
+        max-w-md
+        max-h-30
         overflow-hidden
-        mg-4
+        m-4
         rounded
         bg-[#f2f8f9]
         px-6
@@ -28,13 +30,13 @@ export default function Card({
           -right-4
           -top-4
           h-8
-          w-8
+          w-10
           rounded-full
-          bg-[#00838d]
+         bg-[#8d6700]
           transition-transform
           duration-300
           ease-out
-          group-hover:scale-[21]
+          group-hover:scale-[25]
           z-0
         "
       />
@@ -43,7 +45,7 @@ export default function Card({
       <div className="relative z-10 ">
         <p
           className="
-            text-[18px]
+            text-[20px]
             font-semibold
             leading-5
             text-[#666]
@@ -58,7 +60,7 @@ export default function Card({
         <p
           className="
             mt-2
-            text-sm
+            text-[18px]
             text-[#666]
             transition-colors
             duration-300
@@ -77,12 +79,12 @@ export default function Card({
           top-0
           flex
           h-8
-          w-8
+          w-9
           items-center
           justify-center
           overflow-hidden
           rounded-bl-[32px]
-          bg-[#00838d]
+          bg-[#8d6700]
           z-20
         "
       >
