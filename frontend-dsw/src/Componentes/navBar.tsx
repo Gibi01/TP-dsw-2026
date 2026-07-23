@@ -16,7 +16,7 @@ import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 
 const pages = [
   { text: "Inicio", path: "/" },
-  { text: "Reservar turno", path: "/reserva" },
+  { text: "Especialidades", path: "/reserva" },
   { text: "Especialistas", path: "/especialistas" },
   { text: "Mis turnos", path: "/mis-turnos" },
 ];
@@ -46,7 +46,7 @@ function ResponsiveAppBar() {
 
   return (
     <AppBar position="static"   sx={{backgroundColor: "#8d6700"}}>
-      <Container maxWidth="xl">
+      <Container maxWidth="xl" >
         <Toolbar disableGutters>
           <LocalHospitalIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1}} />
           <Typography

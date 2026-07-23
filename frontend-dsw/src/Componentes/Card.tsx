@@ -1,11 +1,13 @@
+import {Link} from "react-router-dom";
+
 export default function Card({
   title = "titulo no definido",
   description = "descripción no definida",
   href = "#"
 }) {
   return (
-    <a
-      href={href}
+    <Link
+      to={href}
       className="
         group
         relative
@@ -90,6 +92,6 @@ export default function Card({
       >
         <span className="-mr-1 -mt-1 text-white">→</span>
       </div>
-    </a>
+    </Link>
   );
 }

@@ -1,15 +1,16 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './main.css'
-import App from './App.tsx'
-import ResponsiveAppBar from './navBar.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 
+import "./main.css";
+import App from "./App.tsx";
+import ResponsiveAppBar from "./Componentes/navBar";
 
-
-const root = createRoot(document.getElementById('root')!)
-root.render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ResponsiveAppBar />
-    <App />
-  </StrictMode>,
-)
+    <BrowserRouter>
+      <ResponsiveAppBar />
+      <App />
+    </BrowserRouter>
+  </StrictMode>
+);
