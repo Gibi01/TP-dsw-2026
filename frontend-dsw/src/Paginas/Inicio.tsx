@@ -32,7 +32,7 @@ export default function Inicio() {
             <Card
               title="Ver Turnos Reservados"
               description="Tus turnos ya reservados"
-              href="/turnos-reservados"
+              href="/mis-turnos?pendientes=1"
             />
 
           </div>

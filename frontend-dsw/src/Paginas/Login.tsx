@@ -1,6 +1,6 @@
 // src/Paginas/Login.tsx
 import { useState, type FormEvent } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Container,
   Paper,
@@ -10,15 +10,29 @@ import {
   Link,
   Alert,
   Box,
+  CircularProgress,
 } from "@mui/material";
 import type { LoginForm } from "../Tipos/dominio";
+import { login } from "../Servicios/authService";
+import { useAuth } from "../Contextos/AuthContext";
 
 const initialForm: LoginForm = { email: "", password: "" };
+
+interface LocationState {
+  from?: string;
+  mensaje?: string;
+}
 
 export default function Login() {
   const [form, setForm] = useState<LoginForm>(initialForm);
   const [errors, setErrors] = useState<Partial<Record<keyof LoginForm, string>>>({});
-  const [enviado, setEnviado] = useState(false);
+  const [errorApi, setErrorApi] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(false);
+
+  const { guardarSesion } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const state = (location.state as LocationState) ?? {};
 
   const handleChange =
     (field: keyof LoginForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,15 +48,21 @@ export default function Login() {
     return Object.keys(nuevosErrores).length === 0;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setErrorApi(null);
     if (!validate()) return;
 
-    // TODO: reemplazar por la llamada real, por ejemplo:
-    // const data = await api.post("/auth/login", form);
-    // localStorage.setItem("token", data.token);
-    console.log("Login (mock):", form);
-    setEnviado(true);
+    setCargando(true);
+    try {
+      const { token, usuario } = await login(form);
+      guardarSesion(token, usuario);
+      navigate(state.from ?? "/", { replace: true });
+    } catch (err) {
+      setErrorApi(err instanceof Error ? err.message : "No se pudo iniciar sesión.");
+    } finally {
+      setCargando(false);
+    }
   };
 
   return (
@@ -52,9 +72,15 @@ export default function Login() {
           Iniciar sesión
         </Typography>
 
-        {enviado && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            Formulario válido. (Todavía no se envía al backend.)
+        {state.mensaje && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            {state.mensaje}
+          </Alert>
+        )}
+
+        {errorApi && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {errorApi}
           </Alert>
         )}
 
@@ -80,11 +106,24 @@ export default function Login() {
             helperText={errors.password}
           />
 
-          <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 3 }}>
-            Ingresar
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            fullWidth
+            sx={{ mt: 3 }}
+            disabled={cargando}
+          >
+            {cargando ? <CircularProgress size={24} color="inherit" /> : "Ingresar"}
           </Button>
 
           <Typography variant="body2" sx={{ mt: 2, textAlign: "center" }}>
+            <Link component={RouterLink} to="/recuperar-password">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </Typography>
+
+          <Typography variant="body2" sx={{ mt: 1, textAlign: "center" }}>
             ¿No tenés cuenta?{" "}
             <Link component={RouterLink} to="/registro">
               Registrate

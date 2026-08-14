@@ -20,11 +20,18 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new Error(body?.error ?? `Error ${res.status} al consultar ${path}`);
+    // El backend (shared/manejadorErrores.ts) responde { message: "..." } en los errores.
+    throw new Error(body?.message ?? `Error ${res.status} al consultar ${path}`);
   }
 
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
+}
+
+// Todas las rutas del backend envuelven la respuesta así (ver res.status(...).json({ message, data })).
+export interface ApiResponse<T> {
+  message: string;
+  data: T;
 }
 
 export const api = {
@@ -33,5 +40,7 @@ export const api = {
     request<T>(path, { method: "POST", body: JSON.stringify(body) }),
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
+  patch: <T>(path: string, body: unknown) =>
+    request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };

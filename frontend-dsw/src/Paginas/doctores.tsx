@@ -1,10 +1,11 @@
-// src/Paginas/Doctores.tsx
+// src/Paginas/doctores.tsx
 // Cubre búsqueda por nombre/apellido y filtro por especialidad a la vez.
 // Si se llega desde Especialidades.tsx con ?especialidadId=, el filtro
-// viene preseleccionado.
+// viene preseleccionado. Cada tarjeta lleva al detalle del doctor
+// (src/Paginas/DoctorDetalle.tsx), donde se ve su agenda y se reserva turno.
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Container,
   Typography,
@@ -12,8 +13,11 @@ import {
   MenuItem,
   Box,
   Card,
+  CardActionArea,
+  CardActions,
   CardContent,
   Avatar,
+  Button,
   Chip,
   Stack,
   CircularProgress,
@@ -22,11 +26,13 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
-import type { Especialidad, Profesional } from "../Tipos/dominio";
-import { getProfesionales } from "../Servicios/profesionalesService";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import type { Especialidad, Doctor } from "../Tipos/dominio";
+import { getDoctores } from "../Servicios/doctoresService";
 import { getEspecialidades } from "../Servicios/especialidadesService";
 
 export default function Doctores() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [nombre, setNombre] = useState(searchParams.get("nombre") ?? "");
@@ -37,7 +43,7 @@ export default function Doctores() {
   );
 
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
-  const [profesionales, setProfesionales] = useState<Profesional[]>([]);
+  const [doctores, setDoctores] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,11 +57,11 @@ export default function Doctores() {
     setLoading(true);
     setError(null);
 
-    getProfesionales({
+    getDoctores({
       nombre,
       especialidadId: especialidadId === "" ? undefined : especialidadId,
     })
-      .then(setProfesionales)
+      .then(setDoctores)
       .catch(() => setError("No se pudo obtener el listado de doctores."))
       .finally(() => setLoading(false));
 
@@ -68,8 +74,10 @@ export default function Doctores() {
 
   const tituloEspecialidad = useMemo(() => {
     if (especialidadId === "") return null;
-    return especialidades.find((e) => e.id === especialidadId)?.descripcionEsp;
+    return especialidades.find((e) => e.idEspecialidad === especialidadId)?.descripcionEsp;
   }, [especialidadId, especialidades]);
+
+  const irAlDetalle = (matricula: number) => navigate(`/doctores/${matricula}`);
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
@@ -88,12 +96,14 @@ export default function Doctores() {
           label="Buscar por nombre o apellido"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            },
           }}
         />
         <TextField
@@ -108,7 +118,7 @@ export default function Doctores() {
         >
           <MenuItem value="">Todas las especialidades</MenuItem>
           {especialidades.map((esp) => (
-            <MenuItem key={esp.id} value={esp.id}>
+            <MenuItem key={esp.idEspecialidad} value={esp.idEspecialidad}>
               {esp.descripcionEsp}
             </MenuItem>
           ))}
@@ -125,37 +135,48 @@ export default function Doctores() {
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
           <CircularProgress />
         </Box>
-      ) : profesionales.length === 0 ? (
+      ) : doctores.length === 0 ? (
         <Alert severity="info">No se encontraron doctores con ese criterio.</Alert>
       ) : (
         <Stack spacing={2}>
-          {profesionales.map((prof) => (
-            <Card key={prof.id} variant="outlined">
-              <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Avatar sx={{ bgcolor: "primary.main" }}>
-                  <PersonIcon />
-                </Avatar>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="h6" component="div">
-                    Dr./Dra. {prof.nombrePr} {prof.apellidoPr}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Matrícula {prof.matricula}
-                  </Typography>
-                  <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap">
-                    {prof.especialidades.map((esp) => (
-                      <Chip
-                        key={esp.id}
-                        label={esp.descripcionEsp}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                        sx={{ mb: 1 }}
-                      />
-                    ))}
-                  </Stack>
-                </Box>
-              </CardContent>
+          {doctores.map((doc) => (
+            <Card key={doc.matricula} variant="outlined">
+              <CardActionArea onClick={() => irAlDetalle(doc.matricula)}>
+                <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar sx={{ bgcolor: "primary.main" }}>
+                    <PersonIcon />
+                  </Avatar>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h6" component="div">
+                      Dr./Dra. {doc.nombrePr} {doc.apellidoPr}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Matrícula {doc.matricula}
+                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap" }}>
+                      {doc.especialidades?.map((esp) => (
+                        <Chip
+                          key={esp.idEspecialidad}
+                          label={esp.descripcionEsp}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ mb: 1 }}
+                        />
+                      ))}
+                    </Stack>
+                  </Box>
+                </CardContent>
+              </CardActionArea>
+              <CardActions>
+                <Button
+                  size="small"
+                  startIcon={<EventAvailableIcon />}
+                  onClick={() => irAlDetalle(doc.matricula)}
+                >
+                  Reservar turno
+                </Button>
+              </CardActions>
             </Card>
           ))}
         </Stack>

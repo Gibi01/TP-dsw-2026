@@ -20,7 +20,9 @@ export class Usuario extends BaseEntity {
   @Property({ nullable: false })
   apellido!: string;
 
-  @Property({ nullable: false })
+  // hidden: true asegura que el hash nunca viaje en un JSON, incluso si en algún endpoint
+  // se termina serializando un Usuario completo (relación populada, entidad devuelta directo, etc).
+  @Property({ nullable: false, hidden: true })
   password!: string;
 
   @Property({ nullable: false })

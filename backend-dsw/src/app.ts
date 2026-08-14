@@ -13,6 +13,8 @@ import usuarioRouter from './recursos/usuarios/usuario.rutas.js';
 import doctorRouter from './recursos/doctor/doctor.rutas.js';
 import especialidadRouter from './recursos/especialidad/especialidad.rutas.js';
 import categoriaRouter from './recursos/categorias/categoria.rutas.js';
+import turnoRouter from './recursos/turno/turno.rutas.js';
+import agendaRouter from './recursos/agenda/agenda.rutas.js';
 
 export const app = express();
 app.use(cors());
@@ -30,6 +32,8 @@ app.use('/api/usuarios', usuarioRouter);
 app.use('/api/doctores', doctorRouter);
 app.use('/api/especialidades', especialidadRouter);
 app.use('/api/categorias', categoriaRouter);
+app.use('/api/turnos', turnoRouter);
+app.use('/api/agendas', agendaRouter);
 
 app.use(rutaNoEncontrada);
 app.use(manejadorErrores);

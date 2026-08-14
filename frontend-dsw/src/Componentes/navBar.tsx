@@ -13,6 +13,7 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import { useAuth } from '../Contextos/AuthContext';
 
 
 const pages = [
@@ -22,7 +23,7 @@ const pages = [
   { text: "Mis turnos", path: "/mis-turnos" },
 ];
 
-const settings = [
+const opcionesInvitado = [
   { text: "Iniciar sesión", path: "/login" },
   { text: "Registrarme", path: "/registro" },
 ];
@@ -30,6 +31,7 @@ const settings = [
 function ResponsiveAppBar() {
 
   const navigate = useNavigate();
+  const { usuario, estaAutenticado, cerrarSesion } = useAuth();
 
   // Estado para controlar el menú de navegación y el menú de usuario
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
@@ -54,6 +56,12 @@ function ResponsiveAppBar() {
     navigate(path);
     handleCloseNavMenu();
     handleCloseUserMenu();
+  };
+
+  const handleCerrarSesion = () => {
+    cerrarSesion();
+    handleCloseUserMenu();
+    navigate("/");
   };
 
   return (
@@ -146,9 +154,11 @@ function ResponsiveAppBar() {
             ))}
           </Box>
           <Box sx={{ flexGrow: 0 }}>
-            <Tooltip title="Open settings">
+            <Tooltip title={estaAutenticado ? `${usuario!.nombre} ${usuario!.apellido}` : "Iniciar sesión"}>
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="Remy Sharp" src="/static/images/avatar/13.jpg" />
+                <Avatar alt={estaAutenticado ? usuario!.nombre : "Invitado"}>
+                  {estaAutenticado ? usuario!.nombre.charAt(0).toUpperCase() : undefined}
+                </Avatar>
               </IconButton>
             </Tooltip>
             <Menu
@@ -167,11 +177,17 @@ function ResponsiveAppBar() {
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
             >
-              {settings.map((setting) => (
-                <MenuItem key={setting.text} onClick={() => handleNavigateTo(setting.path)}>
-                  <Typography sx={{ textAlign: 'center' }}>{setting.text}</Typography>
-                </MenuItem>
-              ))}
+              {estaAutenticado
+                ? [
+                    <MenuItem key="cerrar-sesion" onClick={handleCerrarSesion}>
+                      <Typography sx={{ textAlign: 'center' }}>Cerrar sesión</Typography>
+                    </MenuItem>,
+                  ]
+                : opcionesInvitado.map((opcion) => (
+                    <MenuItem key={opcion.text} onClick={() => handleNavigateTo(opcion.path)}>
+                      <Typography sx={{ textAlign: 'center' }}>{opcion.text}</Typography>
+                    </MenuItem>
+                  ))}
             </Menu>
           </Box>
         </Toolbar>

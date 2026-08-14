@@ -5,12 +5,15 @@ import { BrowserRouter } from "react-router-dom";
 import "./main.css";
 import App from "./App.tsx";
 import ResponsiveAppBar from "./Componentes/navBar";
+import { AuthProvider } from "./Contextos/AuthContext";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
-      <ResponsiveAppBar />
-      <App />
+      <AuthProvider>
+        <ResponsiveAppBar />
+        <App />
+      </AuthProvider>
     </BrowserRouter>
   </StrictMode>
 );

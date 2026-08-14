@@ -30,7 +30,7 @@ export default function Especialidades() {
   }, []);
 
   const handleSelect = (esp: Especialidad) => {
-    navigate(`/doctores?especialidadId=${esp.id}`);
+    navigate(`/doctores?especialidadId=${esp.idEspecialidad}`);
   };
 
   return (
@@ -55,7 +55,7 @@ export default function Especialidades() {
       ) : (
         <Grid container spacing={2}>
           {especialidades.map((esp) => (
-            <Grid item xs={12} sm={6} md={4} key={esp.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={esp.idEspecialidad}>
               <Card variant="outlined">
                 <CardActionArea onClick={() => handleSelect(esp)}>
                   <CardContent sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>

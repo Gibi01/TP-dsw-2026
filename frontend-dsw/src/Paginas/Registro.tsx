@@ -1,6 +1,6 @@
 // src/Paginas/Registro.tsx
 import { useState, type FormEvent } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import {
   Container,
   Paper,
@@ -11,8 +11,10 @@ import {
   Link,
   Alert,
   Box,
+  CircularProgress,
 } from "@mui/material";
 import type { RegistroUsuarioForm } from "../Tipos/dominio";
+import { registrar } from "../Servicios/authService";
 
 const initialForm: RegistroUsuarioForm = {
   nombre: "",
@@ -26,7 +28,9 @@ const initialForm: RegistroUsuarioForm = {
 export default function Registro() {
   const [form, setForm] = useState<RegistroUsuarioForm>(initialForm);
   const [errors, setErrors] = useState<Partial<Record<keyof RegistroUsuarioForm, string>>>({});
-  const [enviado, setEnviado] = useState(false);
+  const [errorApi, setErrorApi] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange =
     (field: keyof RegistroUsuarioForm) =>
@@ -51,14 +55,22 @@ export default function Registro() {
     return Object.keys(nuevosErrores).length === 0;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setErrorApi(null);
     if (!validate()) return;
 
-    // TODO: reemplazar por la llamada real, por ejemplo:
-    // await api.post("/auth/registro", form);
-    console.log("Registro (mock):", form);
-    setEnviado(true);
+    setCargando(true);
+    try {
+      await registrar(form);
+      navigate("/login", {
+        state: { mensaje: "Cuenta creada. Iniciá sesión para continuar." },
+      });
+    } catch (err) {
+      setErrorApi(err instanceof Error ? err.message : "No se pudo completar el registro.");
+    } finally {
+      setCargando(false);
+    }
   };
 
   return (
@@ -68,9 +80,9 @@ export default function Registro() {
           Crear cuenta
         </Typography>
 
-        {enviado && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            Formulario válido. (Todavía no se envía al backend.)
+        {errorApi && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {errorApi}
           </Alert>
         )}
 
@@ -141,8 +153,15 @@ export default function Registro() {
             </Grid>
           </Grid>
 
-          <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 3 }}>
-            Registrarme
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            fullWidth
+            sx={{ mt: 3 }}
+            disabled={cargando}
+          >
+            {cargando ? <CircularProgress size={24} color="inherit" /> : "Registrarme"}
           </Button>
 
           <Typography variant="body2" sx={{ mt: 2, textAlign: "center" }}>
