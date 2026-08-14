@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -17,13 +18,18 @@ import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 const pages = [
   { text: "Inicio", path: "/" },
   { text: "Especialidades", path: "/reserva" },
-  { text: "Especialistas", path: "/especialistas" },
+  { text: "Especialistas", path: "/doctores" },
   { text: "Mis turnos", path: "/mis-turnos" },
 ];
 
-const settings = ['Mi Perfil', 'Configuración', 'Cerrar Sesión'];
+const settings = [
+  { text: "Iniciar sesión", path: "/login" },
+  { text: "Registrarme", path: "/registro" },
+];
 
 function ResponsiveAppBar() {
+
+  const navigate = useNavigate();
 
   // Estado para controlar el menú de navegación y el menú de usuario
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
@@ -44,6 +50,12 @@ function ResponsiveAppBar() {
     setAnchorElUser(null);
   };
 
+  const handleNavigateTo = (path: string) => {
+    navigate(path);
+    handleCloseNavMenu();
+    handleCloseUserMenu();
+  };
+
   return (
     <AppBar position="static"   sx={{backgroundColor: "#8d6700"}}>
       <Container maxWidth="xl" >
@@ -52,8 +64,8 @@ function ResponsiveAppBar() {
           <Typography
             variant="h6"
             noWrap
-            component="a"
-            href="#app-bar-with-responsive-menu"
+            component={RouterLink}
+            to="/"
             sx={{
               mr: 2,
               display: { xs: 'none', md: 'flex' },
@@ -95,7 +107,7 @@ function ResponsiveAppBar() {
               sx={{ display: { xs: 'block', md: 'none' } }}
             >
               {pages.map((page) => (
-                <MenuItem key={page.text} onClick={handleCloseNavMenu}>
+                <MenuItem key={page.text} onClick={() => handleNavigateTo(page.path)}>
                   <Typography sx={{ textAlign: 'center' }}>{page.text}</Typography>
                 </MenuItem>
               ))}
@@ -105,8 +117,8 @@ function ResponsiveAppBar() {
           <Typography
             variant="h5"
             noWrap
-            component="a"
-            href="#app-bar-with-responsive-menu"
+            component={RouterLink}
+            to="/"
             sx={{
               mr: 2,
               display: { xs: 'flex', md: 'none' },
@@ -124,6 +136,8 @@ function ResponsiveAppBar() {
             {pages.map((page) => (
               <Button
                 key={page.text}
+                component={RouterLink}
+                to={page.path}
                 onClick={handleCloseNavMenu}
                 sx={{ my: 2, color: 'white', display: 'block' }}
               >
@@ -154,8 +168,8 @@ function ResponsiveAppBar() {
               onClose={handleCloseUserMenu}
             >
               {settings.map((setting) => (
-                <MenuItem key={setting} onClick={handleCloseUserMenu}>
-                  <Typography sx={{ textAlign: 'center' }}>{setting}</Typography>
+                <MenuItem key={setting.text} onClick={() => handleNavigateTo(setting.path)}>
+                  <Typography sx={{ textAlign: 'center' }}>{setting.text}</Typography>
                 </MenuItem>
               ))}
             </Menu>

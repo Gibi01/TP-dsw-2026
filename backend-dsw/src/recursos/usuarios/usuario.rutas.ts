@@ -1,14 +1,22 @@
 import { Router } from "express"
-import { sanitizeusuarioInput, findAll,findOne, add,update, remove} from "./usuario.controlador.js"
+import {
+  sanitizeusuarioInput,
+  validarUsuarioCreacion,
+  findAll,
+  findOne,
+  add,
+  update,
+  remove,
+} from "./usuario.controlador.js"
+import { verificarToken, autorizarRoles } from "../../shared/middlewares/auth.middleware.js"
 
 export const usuarioRouter = Router()
 
+usuarioRouter.get('/', verificarToken, autorizarRoles('admin'), findAll);
+usuarioRouter.get('/:id', verificarToken, findOne);
+usuarioRouter.post('/', sanitizeusuarioInput, validarUsuarioCreacion, add);
+usuarioRouter.put('/:id', verificarToken, sanitizeusuarioInput, update);
+usuarioRouter.patch('/:id', verificarToken, sanitizeusuarioInput, update);
+usuarioRouter.delete('/:id', verificarToken, autorizarRoles('admin'), remove);
 
-usuarioRouter.get('/', findAll);
-usuarioRouter.get('/:id', findOne);
-usuarioRouter.post('/', sanitizeusuarioInput, add);
-usuarioRouter.put('/:id', sanitizeusuarioInput, update);
-usuarioRouter.patch('/:id', sanitizeusuarioInput, update);
-usuarioRouter.delete('/:id', remove);
-
- export default usuarioRouter
+export default usuarioRouter

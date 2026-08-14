@@ -5,7 +5,7 @@ import {
   PrimaryKey,
   Property,
 } from '@mikro-orm/core';
-import { Doctor } from '../doctor/doctor.entidad';
+import { Doctor } from '../doctor/doctor.entidad.js';
 
 @Entity()
 export class Especialidad {
@@ -14,7 +14,7 @@ export class Especialidad {
   idEspecialidad!: number;
 
   @Property()
-  descripcion!: string;
+  descripcionEsp!: string;
 
   @ManyToMany(() => Doctor, doctor => doctor.especialidades)
   doctores = new Collection<Doctor>(this);

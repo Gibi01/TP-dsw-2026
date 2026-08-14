@@ -5,7 +5,7 @@ import {
   PrimaryKey,
   Property,
 } from '@mikro-orm/core';
-import { Especialidad } from '../especialidad/especialidad.entidad';
+import { Especialidad } from '../especialidad/especialidad.entidad.js';
 
 @Entity()
 export class Doctor {
@@ -14,10 +14,10 @@ export class Doctor {
   matricula!: number;
 
   @Property()
-  nombre!: string;
+  nombrePr!: string;
 
   @Property()
-  apellido!: string;
+  apellidoPr!: string;
 
   @ManyToMany(() => Especialidad, especialidad => especialidad.doctores, {
     owner: true,
