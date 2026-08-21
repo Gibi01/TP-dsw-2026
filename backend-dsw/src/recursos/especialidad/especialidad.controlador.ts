@@ -5,8 +5,9 @@ import { limpiarInput, validarCamposRequeridos, parsearIdNumerico } from '../../
 
 const em = orm.em;
 
-const CAMPOS = ['idEspecialidad', 'descripcionEsp'];
-const CAMPOS_REQUERIDOS = ['idEspecialidad', 'descripcionEsp'];
+// idEspecialidad no se acepta desde el cliente: la asigna la base de datos (autoincrement).
+const CAMPOS = ['descripcionEsp'];
+const CAMPOS_REQUERIDOS = ['descripcionEsp'];
 
 function sanitizeEspecialidadInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = limpiarInput(req.body, CAMPOS);
@@ -25,8 +26,22 @@ async function findAll(req: Request, res: Response) {
 
 async function findOne(req: Request, res: Response) {
   const idEspecialidad = parsearIdNumerico(req.params.id);
-  const especialidad = await em.findOneOrFail(Especialidad, { idEspecialidad }, { populate: ['doctores'] });
-  res.status(200).json({ message: 'encontrada especialidad', data: especialidad });
+  const especialidad = await em.findOneOrFail(
+    Especialidad,
+    { idEspecialidad },
+    { populate: ['doctores', 'doctores.usuario'] }
+  );
+  const data = {
+    idEspecialidad: especialidad.idEspecialidad,
+    descripcionEsp: especialidad.descripcionEsp,
+    // Un doctor dado de baja no se ofrece como opción bajo ningún concepto. Nunca se expone
+    // el Usuario completo del doctor (contraseña incluida), solo los datos públicos.
+    doctores: especialidad.doctores
+      .getItems()
+      .filter((d) => d.activo)
+      .map((d) => ({ matricula: d.matricula, nombre: d.usuario.nombre, apellido: d.usuario.apellido })),
+  };
+  res.status(200).json({ message: 'encontrada especialidad', data });
 }
 
 async function add(req: Request, res: Response) {

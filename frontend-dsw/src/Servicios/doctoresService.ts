@@ -19,7 +19,7 @@ export async function getDoctores(filtro: FiltroDoctores = {}): Promise<Doctor[]
   if (filtro.nombre && filtro.nombre.trim() !== "") {
     const q = filtro.nombre.trim().toLowerCase();
     resultado = resultado.filter(
-      (d) => d.nombrePr.toLowerCase().includes(q) || d.apellidoPr.toLowerCase().includes(q)
+      (d) => d.nombre.toLowerCase().includes(q) || d.apellido.toLowerCase().includes(q)
     );
   }
 
@@ -35,4 +35,40 @@ export async function getDoctores(filtro: FiltroDoctores = {}): Promise<Doctor[]
 export async function getDoctor(matricula: number): Promise<Doctor> {
   const respuesta = await api.get<ApiResponse<Doctor>>(`/doctores/${matricula}`);
   return respuesta.data;
+}
+
+// GET /doctores/mios — el doctor logueado consulta su propio registro (matrícula, etc).
+export async function getMisDatosDeDoctor(): Promise<Doctor> {
+  const respuesta = await api.get<ApiResponse<Doctor>>("/doctores/mios");
+  return respuesta.data;
+}
+
+export interface NuevoDoctor {
+  matricula: number;
+  nombre: string;
+  apellido: string;
+  email: string;
+  password: string;
+  dni: string;
+  especialidadIds?: number[];
+}
+
+export async function crearDoctor(datos: NuevoDoctor): Promise<Doctor> {
+  const respuesta = await api.post<ApiResponse<Doctor>>("/doctores", datos);
+  return respuesta.data;
+}
+
+export interface EdicionDoctor {
+  especialidadIds?: number[];
+  activo?: boolean;
+}
+
+export async function actualizarDoctor(matricula: number, datos: EdicionDoctor): Promise<Doctor> {
+  const respuesta = await api.patch<ApiResponse<Doctor>>(`/doctores/${matricula}`, datos);
+  return respuesta.data;
+}
+
+// Baja lógica: el doctor no se borra (ni sus turnos), solo deja de ofrecerse como opción.
+export async function darDeBajaDoctor(matricula: number): Promise<void> {
+  await api.delete(`/doctores/${matricula}`);
 }

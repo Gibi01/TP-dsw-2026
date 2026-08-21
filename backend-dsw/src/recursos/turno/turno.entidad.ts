@@ -2,7 +2,10 @@ import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { Usuario } from '../usuarios/usuario.entidad.js';
 import { Doctor } from '../doctor/doctor.entidad.js';
 
-export type EstadoTurno = 'reservado' | 'cancelado';
+// Pendiente: recién creado. Cancelado: el paciente lo canceló. Asistido: el paciente se
+// presentó (lo confirma el doctor). No asistido: no se presentó ni canceló (lo aplica el
+// doctor manualmente, o el sistema automáticamente 12hs después de la fecha/hora del turno).
+export type EstadoTurno = 'pendiente' | 'cancelado' | 'asistido' | 'no_asistido';
 
 @Entity()
 export class Turno {
@@ -22,7 +25,7 @@ export class Turno {
   fechaHoraTurno!: Date;
 
   @Property()
-  estado: EstadoTurno = 'reservado';
+  estado: EstadoTurno = 'pendiente';
 
   @Property({ nullable: true })
   fechaHoraCancelacion?: Date;

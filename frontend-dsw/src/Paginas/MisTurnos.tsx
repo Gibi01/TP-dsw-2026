@@ -8,6 +8,7 @@ import {
   Card,
   CardContent,
   Chip,
+  Paper,
   Stack,
   CircularProgress,
   Alert,
@@ -21,10 +22,34 @@ import {
   Switch,
 } from "@mui/material";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
-import type { Turno } from "../Tipos/dominio";
+import type { EstadoTurno, Turno } from "../Tipos/dominio";
 import { obtenerMisTurnos, cancelarTurno } from "../Servicios/turnosService";
+import { useAuth } from "../Contextos/AuthContext";
+import MisTurnosDoctor from "./MisTurnosDoctor";
+
+const ETIQUETA_ESTADO: Record<EstadoTurno, string> = {
+  pendiente: "Pendiente",
+  cancelado: "Cancelado",
+  asistido: "Asistido",
+  no_asistido: "No asistido",
+};
+
+const COLOR_ESTADO: Record<EstadoTurno, "success" | "default" | "info" | "warning"> = {
+  pendiente: "success",
+  cancelado: "default",
+  asistido: "info",
+  no_asistido: "warning",
+};
 
 export default function MisTurnos() {
+  const { usuario } = useAuth();
+  if (usuario?.rol === "doctor") {
+    return <MisTurnosDoctor />;
+  }
+  return <MisTurnosPaciente />;
+}
+
+function MisTurnosPaciente() {
   const [searchParams] = useSearchParams();
 
   const [turnos, setTurnos] = useState<Turno[]>([]);
@@ -39,7 +64,7 @@ export default function MisTurnos() {
     if (!soloPendientes) return turnos;
     const ahora = Date.now();
     return turnos.filter(
-      (t) => t.estado === "reservado" && new Date(t.fechaHoraTurno).getTime() > ahora
+      (t) => t.estado === "pendiente" && new Date(t.fechaHoraTurno).getTime() > ahora
     );
   }, [turnos, soloPendientes]);
 
@@ -91,20 +116,21 @@ export default function MisTurnos() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Mis turnos
-      </Typography>
+      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Mis turnos
+        </Typography>
 
-      <FormControlLabel
-        sx={{ mb: 2 }}
-        control={
-          <Switch
-            checked={soloPendientes}
-            onChange={(e) => setSoloPendientes(e.target.checked)}
-          />
-        }
-        label="Mostrar solo turnos pendientes"
-      />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={soloPendientes}
+              onChange={(e) => setSoloPendientes(e.target.checked)}
+            />
+          }
+          label="Mostrar solo turnos pendientes"
+        />
+      </Paper>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -134,7 +160,7 @@ export default function MisTurnos() {
                 >
                   <Box>
                     <Typography variant="h6" component="div">
-                      Dr./Dra. {turno.doctor.nombrePr} {turno.doctor.apellidoPr}
+                       Dr./Dra. {turno.doctor.nombre} {turno.doctor.apellido}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {new Date(turno.fechaHoraTurno).toLocaleString("es-AR")}
@@ -151,10 +177,7 @@ export default function MisTurnos() {
                       ))}
                     </Stack>
                   </Box>
-                  <Chip
-                    label={turno.estado === "reservado" ? "Reservado" : "Cancelado"}
-                    color={turno.estado === "reservado" ? "success" : "default"}
-                  />
+                  <Chip label={ETIQUETA_ESTADO[turno.estado]} color={COLOR_ESTADO[turno.estado]} />
                 </Stack>
 
                 {turno.estado === "cancelado" && turno.motivoCancelacion && (
@@ -163,7 +186,7 @@ export default function MisTurnos() {
                   </Alert>
                 )}
 
-                {turno.estado === "reservado" && (
+                {turno.estado === "pendiente" && (
                   <Button
                     startIcon={<EventBusyIcon />}
                     color="error"

@@ -12,7 +12,9 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <AuthProvider>
         <ResponsiveAppBar />
-        <App />
+        <div className="min-h-screen bg-[url('/bgtemporal.jpg')] bg-cover bg-center bg-fixed">
+          <App />
+        </div>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>

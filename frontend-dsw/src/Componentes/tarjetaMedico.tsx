@@ -17,7 +17,7 @@ export default function tarjetaMedico({doctor}){
 
                 <Typography variant="h6">
 
-                    Dr. {doctor.nombre} {doctor.apellido}
+                     {doctor.nombre} {doctor.apellido}
 
                 </Typography>
 

@@ -1,9 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { Agenda } from './agenda.entidad.js';
 import { Doctor } from '../doctor/doctor.entidad.js';
+import { resolverDoctorDelUsuario } from '../doctor/doctor.controlador.js';
 import { orm } from '../../shared/orm.js';
 import { limpiarInput, validarCamposRequeridos, parsearIdNumerico } from '../../shared/validacion.js';
-import { BadRequestError } from '../../shared/errores.js';
+import { BadRequestError, ForbiddenError } from '../../shared/errores.js';
+
+// Un doctor solo puede administrar su propia agenda (identificada por su matrícula real,
+// resuelta a partir de la cuenta logueada); un admin puede administrar la de cualquiera.
+async function verificarDuenioAgenda(req: Request, matriculaDeLaAgenda: number): Promise<void> {
+  if (req.usuario?.rol === 'admin') return;
+  const doctor = await resolverDoctorDelUsuario(req.usuario!.id);
+  if (doctor.matricula !== matriculaDeLaAgenda) {
+    throw new ForbiddenError('Solo podés administrar tu propia agenda');
+  }
+}
 
 const em = orm.em;
 
@@ -74,6 +85,7 @@ async function add(req: Request, res: Response) {
   validarDatosAgenda(datos);
 
   const matricula = parsearIdNumerico(String(doctorId));
+  await verificarDuenioAgenda(req, matricula);
   const doctor = await em.findOneOrFail(Doctor, { matricula });
 
   const agenda = em.create(Agenda, {
@@ -90,12 +102,16 @@ async function add(req: Request, res: Response) {
 
 async function update(req: Request, res: Response) {
   const id = parsearIdNumerico(req.params.id);
-  const agenda = await em.findOneOrFail(Agenda, { id });
+  const agenda = await em.findOneOrFail(Agenda, { id }, { populate: ['doctor'] });
+  await verificarDuenioAgenda(req, agenda.doctor.matricula);
 
   const { doctorId, ...datos } = req.body.sanitizedInput as { doctorId?: unknown; [key: string]: unknown };
   validarDatosAgenda(datos);
 
   if (doctorId !== undefined) {
+    if (req.usuario?.rol !== 'admin') {
+      throw new ForbiddenError('Solo un admin puede reasignar una agenda a otro doctor');
+    }
     const matricula = parsearIdNumerico(String(doctorId));
     agenda.doctor = await em.findOneOrFail(Doctor, { matricula });
   }
@@ -107,7 +123,8 @@ async function update(req: Request, res: Response) {
 
 async function remove(req: Request, res: Response) {
   const id = parsearIdNumerico(req.params.id);
-  const agenda = await em.findOneOrFail(Agenda, { id });
+  const agenda = await em.findOneOrFail(Agenda, { id }, { populate: ['doctor'] });
+  await verificarDuenioAgenda(req, agenda.doctor.matricula);
   await em.removeAndFlush(agenda);
   res.status(200).json({ message: 'agenda eliminada' });
 }

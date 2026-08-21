@@ -7,10 +7,21 @@ import { ConflictError, ForbiddenError } from '../../shared/errores.js';
 
 const em = orm.em;
 
-const CAMPOS = ['nombre', 'apellido', 'password', 'email', 'rol'];
-const CAMPOS_REQUERIDOS = ['nombre', 'apellido', 'password', 'email'];
+const CAMPOS = [
+  'nombre',
+  'apellido',
+  'password',
+  'email',
+  'rol',
+  'dni',
+  'foto',
+  'obraSocial',
+  'direccion',
+  'telefonoCelular',
+];
+const CAMPOS_REQUERIDOS = ['nombre', 'apellido', 'password', 'email', 'dni'];
 const SALT_ROUNDS = 10;
-const ROLES_VALIDOS = ['paciente', 'admin'];
+const ROLES_VALIDOS = ['paciente', 'admin', 'doctor'];
 
 function sanitizeusuarioInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = limpiarInput(req.body, CAMPOS);
@@ -65,12 +76,22 @@ async function update(req: Request, res: Response) {
   const usuarioToUpdate = await em.findOneOrFail(Usuario, { id });
 
   const cambios: Record<string, unknown> = { ...req.body.sanitizedInput };
+
+  // El DNI no se puede modificar una vez cargado, ni siquiera por un admin desde este endpoint.
+  delete cambios.dni;
+
   if (cambios.password) {
     cambios.password = await bcrypt.hash(cambios.password as string, SALT_ROUNDS);
   }
   if (cambios.rol !== undefined) {
     if (req.usuario?.rol !== 'admin' || !ROLES_VALIDOS.includes(cambios.rol as string)) {
       delete cambios.rol; // sólo un admin puede reasignar roles, y sólo a valores válidos
+    }
+  }
+  if (cambios.email !== undefined && cambios.email !== usuarioToUpdate.email) {
+    const existente = await em.findOne(Usuario, { email: cambios.email as string });
+    if (existente) {
+      throw new ConflictError('Ya existe un usuario con ese email');
     }
   }
 

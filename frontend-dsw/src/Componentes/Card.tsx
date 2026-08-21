@@ -3,11 +3,25 @@ import {Link} from "react-router-dom";
 export default function Card({
   title = "titulo no definido",
   description = "descripción no definida",
-  href = "#"
+  href = "#",
+  onClick,
+}: {
+  title?: string;
+  description?: string;
+  href?: string;
+  onClick?: () => void;
 }) {
   return (
     <Link
       to={href}
+      onClick={
+        onClick
+          ? (e) => {
+              e.preventDefault();
+              onClick();
+            }
+          : undefined
+      }
       className="
         group
         relative

@@ -1,0 +1,210 @@
+REQUISITOS FUNCIONALES CUMPLIDOS
+Sistema de turnos médicos (Hospital Ripper) - TP DSW 2026
+Estado al: 15/08/2026
+
+===========================================================
+1. GESTIÓN DE USUARIOS
+===========================================================
+- Registro de usuarios nuevos (rol "paciente" asignado por defecto).
+- Inicio de sesión con email y contraseña, devuelve un token de sesión (JWT).
+- Recuperación de contraseña: solo la pantalla/formulario (interfaz), todavía
+  sin lógica de backend ni envío de mail real.
+- Dos niveles de acceso: "paciente" y "admin".
+- Un usuario puede ver y modificar únicamente su propio perfil; un admin
+  puede ver y administrar todos los usuarios.
+
+===========================================================
+2. MI PERFIL
+===========================================================
+- Pantalla "Mi Perfil" (acceso desde el menú de usuario) que muestra: email,
+  foto, DNI, obra social, dirección y teléfono celular.
+- Todos los campos son editables excepto el DNI (queda fijo una vez cargado,
+  tanto en la interfaz -campo deshabilitado- como en el backend, que ignora
+  cualquier intento de cambiarlo) y el histórico de turnos.
+- La foto se carga como archivo .png (con validación de extensión/tipo y de
+  tamaño máximo); si no hay una foto cargada se muestra un avatar por defecto.
+- Botón directo desde el perfil hacia "Mis turnos" (histórico).
+
+===========================================================
+3. GESTIÓN DE DOCTORES (administrador)
+===========================================================
+- Alta, modificación y baja de doctores desde el panel de administración.
+- Asociación de cada doctor a una o varias especialidades.
+- Búsqueda de doctores por nombre/apellido y filtro por especialidad.
+- Ficha pública de cada doctor con su información y especialidades.
+
+===========================================================
+4. GESTIÓN DE ESPECIALIDADES (administrador)
+===========================================================
+- Alta, modificación y baja de especialidades.
+- El id de la especialidad lo asigna la base de datos automáticamente
+  (autoincremental); no se puede asignar a mano desde el formulario ni desde
+  la API (el backend lo ignora si se manda igual).
+- Listado público de especialidades, navegable hacia los doctores de cada una.
+
+===========================================================
+5. GESTIÓN DE AGENDAS (administrador)
+===========================================================
+- Alta, modificación y baja de bloques de agenda semanal por doctor (día de
+  la semana, hora de inicio, hora de fin, duración de cada turno).
+- Cálculo de disponibilidad real de un doctor en una fecha puntual, a partir
+  de su agenda cargada (no de una franja horaria fija para todos).
+
+===========================================================
+6. GESTIÓN DE SANATORIOS (administrador)
+===========================================================
+- Alta, baja, modificación y listado de sanatorios.
+
+===========================================================
+7. PANEL DE ADMINISTRACIÓN
+===========================================================
+- "Cargar datos" (menú de usuario, solo admin): formulario para dar de alta
+  especialidades, doctores y agendas nuevas.
+- "Modificar datos" (menú de usuario, solo admin): listado de especialidades,
+  doctores y agendas ya cargadas, con acciones de editar y eliminar cada uno.
+- Ambas pantallas están protegidas: si el usuario no es admin, no se puede
+  acceder aunque se conozca la URL.
+
+===========================================================
+8. TURNOS
+===========================================================
+- Reserva de turno con dos caminos: elegir un doctor puntual (desde el
+  listado o desde su ficha) o elegir una especialidad y ver los horarios
+  libres de cualquier doctor de esa especialidad.
+- Al entrar a la ficha de un doctor se ve su calendario de horarios
+  disponibles por fecha, calculado a partir de su agenda real.
+- Reservar un turno requiere sesión iniciada; si no hay sesión, se redirige a
+  login con el horario elegido pendiente de confirmar.
+- Validación de la reserva: el horario tiene que pertenecer a la agenda del
+  doctor y no estar ya ocupado; no se puede reservar en el pasado.
+- "Mis turnos": histórico completo del usuario, filtrable por fecha,
+  especialidad y doctor, con un switch para ver solo los pendientes
+  (reservados y a futuro).
+- Acceso directo a "turnos pendientes" desde "Ver Turnos Reservados" en la
+  pantalla de inicio.
+- Cancelar un turno, con motivo de cancelación obligatorio (formulario) y
+  registro de la fecha/hora en que se canceló.
+
+===========================================================
+9. RESERVA TELEFÓNICA
+===========================================================
+- Botón "Reserva Turnos Telefonicamente" en la pantalla de inicio: abre un
+  modal con el teléfono fijo y el WhatsApp del sanatorio (datos de ejemplo,
+  hardcodeados).
+
+===========================================================
+10. SEGURIDAD Y AUTORIZACIÓN
+===========================================================
+- Autenticación basada en JWT.
+- Contraseñas almacenadas con hash (bcrypt), nunca expuestas en las
+  respuestas de la API.
+- Rutas de alta/edición/baja (doctores, especialidades, agendas, sanatorios)
+  protegidas: solo accesibles por un admin.
+- Crear, ver y cancelar turnos requiere estar logueado.
+- Un usuario solo puede ver, editar o cancelar sus propios datos/turnos
+  (salvo el admin, que puede operar sobre cualquiera).
+- El frontend redirige a la pantalla de login, con aviso, si se intenta
+  acceder a una sección protegida ("Mis turnos", "Mi Perfil", admin) sin
+  sesión iniciada, o al inicio si la sesión no tiene el rol necesario.
+
+===========================================================
+11. FRONTEND
+===========================================================
+- Barra de navegación dinámica según haya o no sesión iniciada, y según el
+  rol (ítems de admin solo visibles para admin).
+- Pantalla de inicio con accesos a reserva de turnos, reserva telefónica y
+  turnos reservados.
+- Listado de especialidades navegable.
+- Listado de doctores con búsqueda por nombre y filtro por especialidad.
+- Tarjeta de cada doctor: clickeable (o con botón "Reservar turno") para
+  entrar a su ficha con calendario de disponibilidad y reserva de turno.
+- Fondo visual consistente en todas las pantallas.
+- Formularios de login y registro conectados al backend real.
+
+
+===========================================================================
+FEATURES TÉCNICAS DEL PROYECTO (para repasar de cara a la defensa)
+===========================================================================
+
+TECNOLOGÍAS USADAS
+-------------------
+Backend:
+- Node.js + TypeScript, Express 5 como framework web.
+- MikroORM (driver MySQL) como ORM / mapper para persistencia.
+- MySQL como base de datos externa.
+- JWT (jsonwebtoken) para autenticación por token.
+- bcryptjs para hashear contraseñas.
+- dotenv para configuración por variables de entorno (.env).
+- morgan para logging de requests.
+- cors para habilitar que el frontend (otro origen) consuma la API.
+- vitest + supertest para testing (unitario e integración).
+
+Frontend:
+- React + TypeScript, compilado con Vite.
+- React Router para el ruteo entre pantallas.
+- MUI (Material UI) como librería de componentes visuales.
+- Tailwind CSS para estilos puntuales (pantalla de inicio, tarjetas).
+- Fetch API nativo (wrapper propio en Servicios/api.ts) para consumir la API,
+  sin librerías externas de HTTP.
+- Context API de React (AuthContext) para manejar la sesión global.
+
+ARQUITECTURA
+-------------
+- Backend en capas: entidad (ORM) -> controlador (lógica) -> rutas (Express),
+  repetido de forma consistente para cada recurso (usuarios, doctores,
+  especialidades, agendas, turnos, sanatorios, auth).
+- Manejo de errores centralizado: clases de error tipadas (BadRequestError,
+  UnauthorizedError, ForbiddenError, NotFoundError, ConflictError) y un
+  middleware único que las traduce a códigos HTTP (400/401/403/404/409),
+  en vez de try/catch repetido en cada controlador (Express 5 propaga los
+  rechazos de promesas automáticamente al middleware de errores).
+- Autenticación por JWT con dos niveles de rol (paciente/admin), verificado
+  con middlewares reutilizables (verificarToken, autorizarRoles).
+
+VALIDACIONES QUE REALIZA EL SISTEMA
+------------------------------------
+- Campos obligatorios por recurso (rechaza con 400 si falta alguno).
+- Formato de email válido y de contraseña (largo mínimo) en el frontend;
+  unicidad de email verificada en el backend al registrarse y al editar
+  el perfil (rechaza con 409 si ya existe otro usuario con ese email).
+- DNI: obligatorio al registrarse, inmutable después (el backend lo descarta
+  aunque se lo intente modificar).
+- Formato de horarios de agenda (HH:MM), hora de inicio anterior a hora de
+  fin, día de la semana entre 0 y 6, duración de turno en minutos positiva.
+- Reserva de turnos: el horario elegido tiene que pertenecer efectivamente a
+  la agenda del doctor (no cualquier horario es válido), no puede estar ya
+  ocupado por otro turno reservado, y no puede ser una fecha/hora pasada.
+- Cancelación de turno: exige un motivo (no se puede cancelar sin justificar).
+- IDs numéricos en parámetros de ruta: si no son un número válido, 400 en vez
+  de un error interno.
+- Foto de perfil: se valida que el archivo sea .png (por tipo MIME y por
+  extensión) y que no supere un tamaño máximo, antes de subirla.
+- Autorización: rutas de escritura (alta/edición/baja) de doctores,
+  especialidades, agendas y sanatorios exigen rol admin; ver o cancelar
+  turnos exige ser el dueño del turno o admin.
+
+TESTS QUE TIENE EL SISTEMA (backend)
+--------------------------------------
+Con vitest + supertest, corriendo con "pnpm test":
+- Tests unitarios sobre las utilidades de validación (limpiar input, exigir
+  campos requeridos, parsear ids numéricos).
+- Tests unitarios sobre las clases de error (cada una devuelve el código de
+  estado HTTP correcto).
+- Tests unitarios sobre el middleware de autenticación (rechaza sin token,
+  rechaza con token inválido, deja pasar con token válido; autoriza o
+  rechaza según el rol).
+- Un test de integración real (ruta -> controlador -> ORM -> base de datos
+  MySQL real) sobre el recurso de especialidades: alta sin token devuelve
+  401, consulta de un id inexistente devuelve 404, listado devuelve 200.
+- Al día de hoy: 4 archivos de test, 20 tests en total, todos en verde.
+
+SEGURIDAD (puntos para poder explicar si preguntan)
+------------------------------------------------------
+- Las contraseñas nunca se guardan en texto plano (hash con bcrypt).
+- Las contraseñas nunca viajan en las respuestas de la API, ni siquiera
+  cuando se devuelve el usuario completo.
+- Las rutas de administración están protegidas tanto en el backend (el
+  middleware de autorización corta antes de llegar al controlador) como en
+  el frontend (se redirige antes de renderizar la pantalla), para que no
+  alcance con conocer la URL.
+- El JWT tiene expiración configurada (no es válido para siempre).

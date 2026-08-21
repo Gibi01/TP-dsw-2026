@@ -4,11 +4,16 @@ import Inicio from "./Paginas/Inicio";
 import Doctores from "./Paginas/doctores";
 import DoctorDetalle from "./Paginas/DoctorDetalle";
 import Especialidades from "./Paginas/Especialidades";
+import EspecialidadTurnos from "./Paginas/EspecialidadTurnos";
 import Registro from "./Paginas/Registro";
 import Login from "./Paginas/Login";
 import RecuperarPassword from "./Paginas/RecuperarPassword";
 import MisTurnos from "./Paginas/MisTurnos";
+import Perfil from "./Paginas/Perfil";
+import AdminCargaDatos from "./Paginas/AdminCargaDatos";
+import AdminModificarDatos from "./Paginas/AdminModificarDatos";
 import RutaPrivada from "./Componentes/RutaPrivada";
+import RutaAdmin from "./Componentes/RutaAdmin";
 
 function App() {
   return (
@@ -18,6 +23,7 @@ function App() {
       <Route path="/doctores" element={<Doctores />} />
       <Route path="/doctores/:matricula" element={<DoctorDetalle />} />
       <Route path="/especialidades" element={<Especialidades />} />
+      <Route path="/especialidades/:id/turnos" element={<EspecialidadTurnos />} />
       <Route path="/registro" element={<Registro />} />
       <Route path="/login" element={<Login />} />
       <Route path="/recuperar-password" element={<RecuperarPassword />} />
@@ -27,6 +33,30 @@ function App() {
           <RutaPrivada>
             <MisTurnos />
           </RutaPrivada>
+        }
+      />
+      <Route
+        path="/perfil"
+        element={
+          <RutaPrivada>
+            <Perfil />
+          </RutaPrivada>
+        }
+      />
+      <Route
+        path="/admin/carga"
+        element={
+          <RutaAdmin>
+            <AdminCargaDatos />
+          </RutaAdmin>
+        }
+      />
+      <Route
+        path="/admin/modificar"
+        element={
+          <RutaAdmin>
+            <AdminModificarDatos />
+          </RutaAdmin>
         }
       />
     </Routes>

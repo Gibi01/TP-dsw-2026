@@ -14,9 +14,9 @@ export const agendaRouter = Router();
 
 agendaRouter.get('/', findAll);
 agendaRouter.get('/:id', findOne);
-agendaRouter.post('/', verificarToken, autorizarRoles('admin'), sanitizeAgendaInput, validarAgendaCreacion, add);
-agendaRouter.put('/:id', verificarToken, autorizarRoles('admin'), sanitizeAgendaInput, update);
-agendaRouter.patch('/:id', verificarToken, autorizarRoles('admin'), sanitizeAgendaInput, update);
-agendaRouter.delete('/:id', verificarToken, autorizarRoles('admin'), remove);
+agendaRouter.post('/', verificarToken, autorizarRoles('admin', 'doctor'), sanitizeAgendaInput, validarAgendaCreacion, add);
+agendaRouter.put('/:id', verificarToken, autorizarRoles('admin', 'doctor'), sanitizeAgendaInput, update);
+agendaRouter.patch('/:id', verificarToken, autorizarRoles('admin', 'doctor'), sanitizeAgendaInput, update);
+agendaRouter.delete('/:id', verificarToken, autorizarRoles('admin', 'doctor'), remove);
 
 export default agendaRouter;

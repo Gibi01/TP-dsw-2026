@@ -1,16 +1,7 @@
-import {
-  Entity,
-  Property,
-  PrimaryKey,
-  ManyToOne,
-  OneToMany,
-  Collection,
-} from '@mikro-orm/core';
-
-import { BaseEntity } from '../../shared/baseEntity.entity.js';
+import { Entity, Property, PrimaryKey } from '@mikro-orm/core';
 
 @Entity()
-export class Usuario extends BaseEntity {
+export class Usuario {
   @PrimaryKey({})
   id!: number;
 
@@ -31,11 +22,21 @@ export class Usuario extends BaseEntity {
   @Property({ nullable: false })
   rol!: string;
 
-  //muchos usuarios tienen un usuario 'lider' o 'padre', y un usuario puede ser el lider de muchos usuarios
-  @ManyToOne(() => Usuario, { nullable: true })
-  padre?: Usuario;
+  // Datos de perfil, editables por el usuario salvo el DNI (ver comentario en update()).
+  @Property({ nullable: true })
+  dni?: string;
 
-  //un usuario puede ser el lider de muchos usuarios, y un usuario tiene un solo lider o padre
-  @OneToMany(() => Usuario, usuario => usuario.padre)
-  hijos = new Collection<Usuario>(this);
+  // longtext: guarda la imagen en base64 (no hay almacenamiento de archivos en el
+  // proyecto), un varchar corto no alcanza para un .png codificado.
+  @Property({ nullable: true, columnType: 'longtext' })
+  foto?: string;
+
+  @Property({ nullable: true })
+  obraSocial?: string;
+
+  @Property({ nullable: true })
+  direccion?: string;
+
+  @Property({ nullable: true })
+  telefonoCelular?: string;
 }

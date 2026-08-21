@@ -19,6 +19,7 @@ import {
   Avatar,
   Button,
   Chip,
+  Paper,
   Stack,
   CircularProgress,
   Alert,
@@ -81,16 +82,17 @@ export default function Doctores() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Doctores
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        {tituloEspecialidad
-          ? `Mostrando doctores de ${tituloEspecialidad}`
-          : "Buscá un doctor por nombre o apellido, o filtrá por especialidad."}
-      </Typography>
+      <Paper variant="outlined" sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Doctores
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          {tituloEspecialidad
+            ? `Mostrando doctores de ${tituloEspecialidad}`
+            : "Buscá un doctor por nombre o apellido, o filtrá por especialidad."}
+        </Typography>
 
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 4 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         <TextField
           fullWidth
           label="Buscar por nombre o apellido"
@@ -123,7 +125,8 @@ export default function Doctores() {
             </MenuItem>
           ))}
         </TextField>
-      </Stack>
+        </Stack>
+      </Paper>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -148,7 +151,7 @@ export default function Doctores() {
                   </Avatar>
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="h6" component="div">
-                      Dr./Dra. {doc.nombrePr} {doc.apellidoPr}
+                       Dr./Dra. {doc.nombre} {doc.apellido}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Matrícula {doc.matricula}

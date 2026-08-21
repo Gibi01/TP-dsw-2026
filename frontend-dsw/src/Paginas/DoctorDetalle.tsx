@@ -130,7 +130,7 @@ export default function DoctorDetalle() {
           </Avatar>
           <Box>
             <Typography variant="h5" component="h1">
-              Dr./Dra. {doctor.nombrePr} {doctor.apellidoPr}
+               Dr./Dra. {doctor.nombre} {doctor.apellido}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Matrícula {doctor.matricula}
@@ -150,40 +150,52 @@ export default function DoctorDetalle() {
         </Stack>
       </Paper>
 
-      <Typography variant="h6" gutterBottom>
-        Turnos disponibles
-      </Typography>
+      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Turnos disponibles
+        </Typography>
 
-      <TextField
-        type="date"
-        label="Fecha"
-        value={fecha}
-        onChange={(e) => setFecha(e.target.value)}
-        sx={{ mb: 3 }}
-        slotProps={{ inputLabel: { shrink: true } }}
-      />
+        <TextField
+          type="date"
+          label="Fecha"
+          value={fecha}
+          onChange={(e) => setFecha(e.target.value)}
+          sx={{ mb: 3 }}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
 
-      {errorSlots && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {errorSlots}
-        </Alert>
-      )}
+        {errorSlots && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {errorSlots}
+          </Alert>
+        )}
 
-      {loadingSlots ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
-      ) : slots.length === 0 ? (
-        <Alert severity="info">No hay horarios disponibles para esta fecha.</Alert>
-      ) : (
-        <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-          {slots.map((slot) => (
-            <Button key={slot} variant="outlined" onClick={() => elegirSlot(slot)} sx={{ mb: 1 }}>
-              {new Date(slot).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
-            </Button>
-          ))}
-        </Stack>
-      )}
+        {loadingSlots ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+            <CircularProgress size={28} />
+          </Box>
+        ) : slots.length === 0 ? (
+          <Alert severity="info">No hay horarios disponibles para esta fecha.</Alert>
+        ) : (
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(3, 1fr)",
+                sm: "repeat(4, 1fr)",
+                md: "repeat(6, 1fr)",
+              },
+              gap: "5px",
+            }}
+          >
+            {slots.map((slot) => (
+              <Button key={slot} variant="outlined" onClick={() => elegirSlot(slot)}>
+                {new Date(slot).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+              </Button>
+            ))}
+          </Box>
+        )}
+      </Paper>
 
       <Dialog open={slotElegido !== null} onClose={() => setSlotElegido(null)}>
         <DialogTitle>Confirmar turno</DialogTitle>
@@ -195,7 +207,7 @@ export default function DoctorDetalle() {
           )}
           {slotElegido && (
             <Typography>
-              Turno con Dr./Dra. {doctor.nombrePr} {doctor.apellidoPr} el{" "}
+              Turno con Dr./Dra. {doctor.nombre} {doctor.apellido} el{" "}
               {new Date(slotElegido).toLocaleString("es-AR")}.
             </Typography>
           )}

@@ -1,22 +1,25 @@
 import { Router } from 'express';
 import {
-  sanitizeDoctorInput,
+  sanitizeDoctorAlta,
+  sanitizeDoctorEdicion,
   validarDoctorCreacion,
   findAll,
   findOne,
+  misDatos,
   add,
   update,
   remove,
 } from './doctor.controlador.js';
-import { verificarToken, autorizarRoles } from '../../shared/middlewares/auth.middleware.js';
+import { verificarToken, autorizarRoles, intentarVerificarToken } from '../../shared/middlewares/auth.middleware.js';
 
 export const doctorRouter = Router();
 
-doctorRouter.get('/', findAll);
-doctorRouter.get('/:matricula', findOne);
-doctorRouter.post('/', verificarToken, autorizarRoles('admin'), sanitizeDoctorInput, validarDoctorCreacion, add);
-doctorRouter.put('/:matricula', verificarToken, autorizarRoles('admin'), sanitizeDoctorInput, update);
-doctorRouter.patch('/:matricula', verificarToken, autorizarRoles('admin'), sanitizeDoctorInput, update);
+doctorRouter.get('/', intentarVerificarToken, findAll);
+doctorRouter.get('/mios', verificarToken, autorizarRoles('doctor'), misDatos);
+doctorRouter.get('/:matricula', intentarVerificarToken, findOne);
+doctorRouter.post('/', verificarToken, autorizarRoles('admin'), sanitizeDoctorAlta, validarDoctorCreacion, add);
+doctorRouter.put('/:matricula', verificarToken, autorizarRoles('admin'), sanitizeDoctorEdicion, update);
+doctorRouter.patch('/:matricula', verificarToken, autorizarRoles('admin'), sanitizeDoctorEdicion, update);
 doctorRouter.delete('/:matricula', verificarToken, autorizarRoles('admin'), remove);
 
 export default doctorRouter;

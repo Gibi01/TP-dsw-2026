@@ -5,10 +5,8 @@ import {
   PrimaryKey,
 } from '@mikro-orm/core';
 
-import { BaseEntity } from '../../shared/baseEntity.entity.js';
-
 @Entity()
-export class Sanatorio extends BaseEntity {
+export class Sanatorio {
   @PrimaryKey({})
   id!: number;
 

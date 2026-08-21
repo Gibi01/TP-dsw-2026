@@ -9,6 +9,7 @@ import {
   CardActionArea,
   CardContent,
   Box,
+  Paper,
   CircularProgress,
   Alert,
 } from "@mui/material";
@@ -30,17 +31,19 @@ export default function Especialidades() {
   }, []);
 
   const handleSelect = (esp: Especialidad) => {
-    navigate(`/doctores?especialidadId=${esp.idEspecialidad}`);
+    navigate(`/especialidades/${esp.idEspecialidad}/turnos`);
   };
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Especialidades
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        Elegí una especialidad para ver los doctores disponibles.
-      </Typography>
+      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Especialidades
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Elegí una especialidad para ver los turnos disponibles.
+        </Typography>
+      </Paper>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
