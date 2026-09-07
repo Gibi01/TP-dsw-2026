@@ -1,12 +1,6 @@
-// Test de integración: ejercita ruta -> controlador -> ORM -> base de datos real.
-// Requiere la misma base MySQL que usa "pnpm dev" (ver .env / .env.example) levantada y accesible.
-//
-// Importa desde dist/ (compilado) en vez de los .ts fuente: el discovery de entidades de
-// MikroORM hace un import() en runtime de cada entidad, y ese import puntual no pasa por el
-// transformer de vitest. Contra .ts crudo eso rompe en Windows con un error de ESM al no poder
-// resolver la extensión; contra .js ya compilado (lo que corre "pnpm dev" en producción) funciona
-// igual que en la app real. El script "pretest" (ver package.json) corre "pnpm build" antes de
-// esto para asegurar que dist/ esté actualizado.
+// test de integracion, necesita mysql levantado (mismo que usa pnpm dev)
+// importamos desde dist/ y no desde los .ts porque mikroorm hace un import() de las entidades
+// en runtime y en windows tira error de ESM si son .ts crudos. por eso "pretest" compila antes
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
 
@@ -18,7 +12,7 @@ const { Especialidad } = await import('../../../dist/recursos/especialidad/espec
 
 const especialidadDeTest = { idEspecialidad: 9001, descripcionEsp: 'Especialidad de test' };
 
-beforeAll(async () => {
+beforeAll(async () => { // no deberia haber 9000 especialidades pero por las dudas limpio
   await orm.em.fork().nativeDelete(Especialidad, { idEspecialidad: especialidadDeTest.idEspecialidad });
 });
 

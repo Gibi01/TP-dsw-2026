@@ -1,8 +1,6 @@
 // src/Servicios/api.ts
-// Wrapper mínimo sobre fetch, sin agregar dependencias nuevas
-// (tu package.json no tiene axios instalado). Cuando conectes el
-// backend real, definí VITE_API_URL en un archivo .env:
-//   VITE_API_URL=http://localhost:3000/api
+// wrapper de fetch nomas, para no meter axios como dependencia nueva
+// si hace falta cambiar la url del back poner VITE_API_URL en el .env
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
@@ -20,7 +18,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    // El backend (shared/manejadorErrores.ts) responde { message: "..." } en los errores.
+
+    // si tira 401 en una ruta que no sea login es que se vencio el token (en login un 401 es solo que esta mal la contraseña)
+    if (res.status === 401 && path !== "/auth/login") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("usuario");
+      window.dispatchEvent(new Event("auth:sesion-vencida"));
+    }
+
+    // el backend manda { message: "..." } en los errores
     throw new Error(body?.message ?? `Error ${res.status} al consultar ${path}`);
   }
 
@@ -28,7 +34,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// Todas las rutas del backend envuelven la respuesta así (ver res.status(...).json({ message, data })).
+// todas las rutas devuelven { message, data }
 export interface ApiResponse<T> {
   message: string;
   data: T;

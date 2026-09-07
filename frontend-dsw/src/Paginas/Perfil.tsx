@@ -12,6 +12,10 @@ import {
   Alert,
   CircularProgress,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 import { useAuth } from "../Contextos/AuthContext";
@@ -19,7 +23,7 @@ import { obtenerPerfil, actualizarPerfil } from "../Servicios/usuarioService";
 import type { PerfilUsuario } from "../Tipos/dominio";
 
 export default function Perfil() {
-  const { usuario } = useAuth();
+  const { usuario, actualizarUsuario } = useAuth();
   const navigate = useNavigate();
 
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
@@ -29,9 +33,14 @@ export default function Perfil() {
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
   const [guardadoOk, setGuardadoOk] = useState(false);
+  const [mensajeGuardadoOk, setMensajeGuardadoOk] = useState("Perfil actualizado.");
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
 
-  const MAX_FOTO_BYTES = 2 * 1024 * 1024; // 2MB: no hay almacenamiento de archivos, viaja como base64
+  const [confirmarEliminarFoto, setConfirmarEliminarFoto] = useState(false);
+  const [eliminandoFoto, setEliminandoFoto] = useState(false);
+  const [errorEliminarFoto, setErrorEliminarFoto] = useState<string | null>(null);
+
+  const MAX_FOTO_BYTES = 2 * 1024 * 1024; // 2MB, va como base64 porque no hay almacenamiento de archivos
 
   useEffect(() => {
     if (!usuario) return;
@@ -50,7 +59,7 @@ export default function Perfil() {
 
   const handleFotoChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    e.target.value = ""; // permite volver a elegir el mismo archivo si lo corrige
+    e.target.value = ""; // asi se puede volver a elegir el mismo archivo si lo corrige
     if (!file) return;
 
     setErrorFoto(null);
@@ -73,9 +82,30 @@ export default function Perfil() {
     lector.readAsDataURL(file);
   };
 
-  const quitarFoto = () => {
-    setPerfil((prev) => (prev ? { ...prev, foto: undefined } : prev));
-    setErrorFoto(null);
+  const abrirConfirmarEliminarFoto = () => {
+    setConfirmarEliminarFoto(true);
+    setErrorEliminarFoto(null);
+  };
+
+  // esto se guarda al toque, no espera al boton "Guardar cambios" como el resto del form
+  // asi se ve de una que quedo con el avatar por defecto
+  const confirmarEliminacionFoto = async () => {
+    if (!usuario) return;
+    setEliminandoFoto(true);
+    setErrorEliminarFoto(null);
+    try {
+      const actualizado = await actualizarPerfil(usuario.id, { foto: null });
+      setPerfil(actualizado);
+      actualizarUsuario({ foto: null });
+      setConfirmarEliminarFoto(false);
+      setMensajeGuardadoOk("Foto de perfil eliminada.");
+      setGuardadoOk(true);
+      setErrorGuardar(null);
+    } catch (err) {
+      setErrorEliminarFoto(err instanceof Error ? err.message : "No se pudo eliminar la foto.");
+    } finally {
+      setEliminandoFoto(false);
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -88,12 +118,15 @@ export default function Perfil() {
     try {
       const actualizado = await actualizarPerfil(usuario.id, {
         email: perfil.email,
-        foto: perfil.foto,
+        foto: perfil.foto ?? null,
         obraSocial: perfil.obraSocial,
         direccion: perfil.direccion,
         telefonoCelular: perfil.telefonoCelular,
       });
       setPerfil(actualizado);
+      // actualiza el avatar del navbar al toque sin recargar la pagina
+      actualizarUsuario({ foto: actualizado.foto ?? null });
+      setMensajeGuardadoOk("Perfil actualizado.");
       setGuardadoOk(true);
     } catch (err) {
       setErrorGuardar(err instanceof Error ? err.message : "No se pudieron guardar los cambios.");
@@ -130,7 +163,7 @@ export default function Perfil() {
 
         {guardadoOk && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            Perfil actualizado.
+            {mensajeGuardadoOk}
           </Alert>
         )}
         {errorGuardar && (
@@ -163,7 +196,7 @@ export default function Perfil() {
                 <input type="file" accept=".png,image/png" hidden onChange={handleFotoChange} />
               </Button>
               {perfil.foto && (
-                <Button color="error" onClick={quitarFoto}>
+                <Button color="error" onClick={abrirConfirmarEliminarFoto}>
                   Quitar foto
                 </Button>
               )}
@@ -226,6 +259,34 @@ export default function Perfil() {
           </Button>
         </Box>
       </Paper>
+
+      <Dialog
+        open={confirmarEliminarFoto}
+        onClose={() => (!eliminandoFoto ? setConfirmarEliminarFoto(false) : undefined)}
+      >
+        <DialogTitle>Eliminar foto de perfil</DialogTitle>
+        <DialogContent>
+          {errorEliminarFoto && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {errorEliminarFoto}
+            </Alert>
+          )}
+          <Typography>¿Seguro que querés eliminar tu foto de perfil?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmarEliminarFoto(false)} disabled={eliminandoFoto}>
+            Cancelar
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={confirmarEliminacionFoto}
+            disabled={eliminandoFoto}
+          >
+            {eliminandoFoto ? <CircularProgress size={20} color="inherit" /> : "Confirmar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

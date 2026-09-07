@@ -1,7 +1,6 @@
 // src/Paginas/AdminModificarDatos.tsx
-// Página de administración: editar o eliminar especialidades, doctores y agendas
-// ya cargadas. Solo accesible por un usuario con rol admin (ver RutaAdmin).
-// Complementa a AdminCargaDatos.tsx, que es solo alta.
+// pagina de admin para editar/eliminar especialidades, doctores y agendas ya cargadas
+// solo entra un admin (RutaAdmin). el alta esta en AdminCargaDatos.tsx
 
 import { useEffect, useState } from "react";
 import {
@@ -240,7 +239,7 @@ function ListaDoctores() {
 
   const cargar = () => {
     setLoading(true);
-    // Como admin, getDoctores también trae los dados de baja (ver findAll en el backend).
+    // siendo admin, getDoctores tambien trae los dados de baja
     Promise.all([getDoctores(), getEspecialidades()])
       .then(([docs, esps]) => {
         setDoctores(docs);
@@ -550,7 +549,7 @@ function ListaAgendas() {
               </MenuItem>
             ))}
           </TextField>
-          <Stack direction="row" spacing={2}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             <TextField
               fullWidth
               margin="normal"

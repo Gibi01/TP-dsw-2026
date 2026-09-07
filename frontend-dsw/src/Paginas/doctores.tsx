@@ -1,8 +1,7 @@
 // src/Paginas/doctores.tsx
-// Cubre búsqueda por nombre/apellido y filtro por especialidad a la vez.
-// Si se llega desde Especialidades.tsx con ?especialidadId=, el filtro
-// viene preseleccionado. Cada tarjeta lleva al detalle del doctor
-// (src/Paginas/DoctorDetalle.tsx), donde se ve su agenda y se reserva turno.
+// busca por nombre/apellido y filtra por especialidad al mismo tiempo
+// si se llega desde Especialidades.tsx con ?especialidadId= ya viene preseleccionado
+// cada tarjeta lleva al detalle del doctor donde se reserva el turno
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";

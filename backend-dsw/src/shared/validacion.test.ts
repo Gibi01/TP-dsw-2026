@@ -3,7 +3,7 @@ import { limpiarInput, validarCamposRequeridos, parsearIdNumerico } from './vali
 import { BadRequestError } from './errores.js';
 
 describe('limpiarInput', () => {
-  it('conserva solo los campos permitidos y descarta undefined', () => {
+  it('conserva solo los campos permitidos y descarta los no definidos', () => {
     const resultado = limpiarInput(
       { nombre: 'Juan', apellido: undefined, extra: 'no permitido' },
       ['nombre', 'apellido']

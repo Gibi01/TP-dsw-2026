@@ -1,7 +1,7 @@
-// Test de integración: cubre el circuito completo de doctor-como-usuario, agenda propia,
-// reserva de turno, y los cuatro estados de un turno (pendiente/asistido/no_asistido/cancelado).
-// Mismo approach que especialidad.integration.test.ts: importa desde dist/ compilado (ver
-// el comentario de ese archivo para el porqué) y requiere la base MySQL real levantada.
+// test de integracion, cubre todo el circuito de doctor-como-usuario, agenda propia,
+// reserva de turno y los 4 estados (pendiente/asistido/no_asistido/cancelado).
+// mismo approach que especialidad.integration.test.ts (importa desde dist/, ver ese archivo
+// para el porque), y necesita mysql real levantado
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
@@ -114,9 +114,9 @@ describe('Doctor como usuario + estados de turno', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.length).toBeGreaterThan(0);
     const cuerpoCrudo = JSON.stringify(res.body.data);
-    // Nada de esto debería aparecer: ni el hash de contraseña, ni el DNI/dirección del doctor,
-    // ni la colección inversa "doctores" de la Especialidad anidada (el bug real: el identity
-    // map de MikroORM podía re-serializar el ciclo Especialidad->doctores->Usuario completo).
+    // nada de esto tiene que aparecer, ni el hash de la contraseña ni el dni/direccion del
+    // doctor ni la coleccion inversa "doctores" de la Especialidad anidada (el bug real era que
+    // el identity map de mikroorm re-serializaba el ciclo Especialidad->doctores->Usuario entero)
     expect(cuerpoCrudo).not.toContain('password');
     expect(cuerpoCrudo).not.toContain('"usuario"');
     expect(cuerpoCrudo).not.toContain('"doctores"');
@@ -243,7 +243,7 @@ describe('Doctor como usuario + estados de turno', () => {
     const resEsp = await request(app).get(`/api/especialidades/${idEspecialidad}`);
     expect(resEsp.body.data.doctores.some((d: any) => d.matricula === MATRICULA)).toBe(false);
 
-    // Los turnos ya reservados con este doctor siguen existiendo (no se borran).
+    // los turnos ya reservados con este doctor siguen existiendo, no se borran
     const turnoSigueExistiendo = await orm.em.fork().findOne(Turno, { id: turnoAsistidoId });
     expect(turnoSigueExistiendo).not.toBeNull();
   });

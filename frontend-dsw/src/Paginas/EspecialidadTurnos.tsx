@@ -1,7 +1,6 @@
 // src/Paginas/EspecialidadTurnos.tsx
-// Al elegir una especialidad se ve primero la lista de horarios disponibles (de cualquier
-// doctor de esa especialidad) para una fecha. Al elegir un horario, se muestra el/los
-// doctor/es que atienden en ese horario puntual; ahí se termina de elegir con quién reservar.
+// aca se elige primero el horario disponible (de cualquier doctor de la especialidad) y
+// despues se muestra que doctor/es atienden en ese horario para terminar de elegir
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -28,6 +27,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import type { SlotEspecialidad } from "../Tipos/dominio";
 import { getDisponibilidadEspecialidad, reservarTurno } from "../Servicios/turnosService";
 import { useAuth } from "../Contextos/AuthContext";
+import { formatearHora, formatearFechaHora } from "../Servicios/formatoFechaHora";
 
 function hoyISO(): string {
   const hoy = new Date();
@@ -64,7 +64,7 @@ export default function EspecialidadTurnos() {
       .finally(() => setLoading(false));
   }, [idEspecialidad, fecha]);
 
-  // Agrupa por horario: puede haber más de un doctor disponible en el mismo momento.
+  // agrupo por horario porque puede haber mas de un doctor en el mismo momento
   const horarios = useMemo(() => {
     const mapa = new Map<string, SlotEspecialidad["doctor"][]>();
     for (const slot of slots) {
@@ -122,8 +122,8 @@ export default function EspecialidadTurnos() {
           type="date"
           label="Fecha"
           value={fecha}
-          onChange={(e) => setFecha(e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
+          onChange={(e) => setFecha(e.target.value < hoyISO() ? hoyISO() : e.target.value)}
+          slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: hoyISO() } }}
         />
       </Paper>
 
@@ -140,24 +140,26 @@ export default function EspecialidadTurnos() {
       ) : horarios.length === 0 ? (
         <Alert severity="info">No hay turnos disponibles para esta fecha.</Alert>
       ) : (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "repeat(3, 1fr)",
-              sm: "repeat(4, 1fr)",
-              md: "repeat(6, 1fr)",
-            },
-            gap: "5px",
-          }}
-        >
-          {horarios.map(([horario, doctores]) => (
-            <Button key={horario} variant="outlined" onClick={() => elegirHorario(horario)}>
-              {new Date(horario).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
-              {doctores.length > 1 ? ` (${doctores.length})` : ""}
-            </Button>
-          ))}
-        </Box>
+        <Paper variant="outlined" sx={{ p: 3 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(3, 1fr)",
+                sm: "repeat(4, 1fr)",
+                md: "repeat(6, 1fr)",
+              },
+              gap: "5px",
+            }}
+          >
+            {horarios.map(([horario, doctores]) => (
+              <Button key={horario} variant="outlined" onClick={() => elegirHorario(horario)}>
+                {formatearHora(horario)}
+                {doctores.length > 1 ? ` (${doctores.length})` : ""}
+              </Button>
+            ))}
+          </Box>
+        </Paper>
       )}
 
       <Dialog open={horarioElegido !== null} onClose={() => setHorarioElegido(null)} fullWidth maxWidth="xs">
@@ -165,7 +167,7 @@ export default function EspecialidadTurnos() {
         <DialogContent>
           {horarioElegido && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Horario: {new Date(horarioElegido).toLocaleString("es-AR")}
+              Horario: {formatearFechaHora(horarioElegido)}
             </Typography>
           )}
           <List>
@@ -204,7 +206,7 @@ export default function EspecialidadTurnos() {
           {doctorElegido && horarioElegido && (
             <Typography>
               Turno con Dr./Dra. {doctorElegido.nombre} {doctorElegido.apellido} el{" "}
-              {new Date(horarioElegido).toLocaleString("es-AR")}.
+              {formatearFechaHora(horarioElegido)}.
             </Typography>
           )}
         </DialogContent>

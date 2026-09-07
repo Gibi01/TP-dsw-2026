@@ -19,7 +19,7 @@ export async function obtenerMisTurnos(filtro: FiltroMisTurnos = {}): Promise<Tu
   return respuesta.data;
 }
 
-// GET /turnos/atiendo — el doctor logueado ve los turnos que tiene que atender.
+// GET /turnos/atiendo, el doctor logueado ve los turnos que tiene que atender
 export async function obtenerTurnosQueAtiendo(estado?: EstadoTurno): Promise<TurnoParaDoctor[]> {
   const query = estado ? `?estado=${estado}` : "";
   const respuesta = await api.get<ApiResponse<TurnoParaDoctor[]>>(`/turnos/atiendo${query}`);
@@ -33,21 +33,19 @@ export async function cancelarTurno(id: number, motivoCancelacion: string): Prom
   return respuesta.data;
 }
 
-// El doctor confirma que el paciente se presentó al turno.
+// el doctor confirma que el paciente vino al turno
 export async function marcarTurnoAsistido(id: number): Promise<TurnoParaDoctor> {
   const respuesta = await api.patch<ApiResponse<TurnoParaDoctor>>(`/turnos/${id}/asistio`, {});
   return respuesta.data;
 }
 
-// El doctor marca manualmente que el paciente no se presentó (si no, el sistema lo hace solo
-// 12hs después de la fecha/hora del turno).
+// el doctor marca a mano que el paciente no vino (si no, el sistema lo marca solo a las 12hs)
 export async function marcarTurnoNoAsistido(id: number): Promise<TurnoParaDoctor> {
   const respuesta = await api.patch<ApiResponse<TurnoParaDoctor>>(`/turnos/${id}/no-asistio`, {});
   return respuesta.data;
 }
 
-// Horarios libres de un doctor puntual en una fecha (YYYY-MM-DD). El backend arma esta lista
-// a partir de la Agenda real del doctor, descontando lo ya reservado.
+// horarios libres de un doctor en una fecha (YYYY-MM-DD), el backend lo arma a partir de su agenda descontando lo reservado
 export async function getDisponibilidadDoctor(doctorId: number, fecha: string): Promise<string[]> {
   const respuesta = await api.get<ApiResponse<string[]>>(
     `/turnos/disponibilidad?doctorId=${doctorId}&fecha=${fecha}`
@@ -55,8 +53,7 @@ export async function getDisponibilidadDoctor(doctorId: number, fecha: string): 
   return respuesta.data;
 }
 
-// Horarios libres de cualquier doctor de una especialidad en una fecha: primero se elige el
-// horario, después a qué doctor (puede haber más de uno atendiendo en el mismo horario).
+// horarios libres de cualquier doctor de una especialidad, primero se elige el horario y despues el doctor (puede haber mas de uno en el mismo horario)
 export async function getDisponibilidadEspecialidad(
   especialidadId: number,
   fecha: string

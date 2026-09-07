@@ -5,7 +5,7 @@ import { limpiarInput, validarCamposRequeridos, parsearIdNumerico } from '../../
 
 const em = orm.em;
 
-// idEspecialidad no se acepta desde el cliente: la asigna la base de datos (autoincrement).
+// idEspecialidad no viene del cliente, lo pone la base con autoincrement
 const CAMPOS = ['descripcionEsp'];
 const CAMPOS_REQUERIDOS = ['descripcionEsp'];
 
@@ -34,8 +34,8 @@ async function findOne(req: Request, res: Response) {
   const data = {
     idEspecialidad: especialidad.idEspecialidad,
     descripcionEsp: especialidad.descripcionEsp,
-    // Un doctor dado de baja no se ofrece como opción bajo ningún concepto. Nunca se expone
-    // el Usuario completo del doctor (contraseña incluida), solo los datos públicos.
+    // un doctor dado de baja no se muestra nunca. y nunca mandamos el Usuario completo
+    // (tiene la contraseña), solo los datos publicos
     doctores: especialidad.doctores
       .getItems()
       .filter((d) => d.activo)

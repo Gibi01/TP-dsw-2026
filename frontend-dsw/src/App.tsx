@@ -9,11 +9,14 @@ import Registro from "./Paginas/Registro";
 import Login from "./Paginas/Login";
 import RecuperarPassword from "./Paginas/RecuperarPassword";
 import MisTurnos from "./Paginas/MisTurnos";
+import TurnosPacientes from "./Paginas/TurnosPacientes";
+import MiAgenda from "./Paginas/MiAgenda";
 import Perfil from "./Paginas/Perfil";
 import AdminCargaDatos from "./Paginas/AdminCargaDatos";
 import AdminModificarDatos from "./Paginas/AdminModificarDatos";
 import RutaPrivada from "./Componentes/RutaPrivada";
 import RutaAdmin from "./Componentes/RutaAdmin";
+import RutaDoctor from "./Componentes/RutaDoctor";
 
 function App() {
   return (
@@ -33,6 +36,22 @@ function App() {
           <RutaPrivada>
             <MisTurnos />
           </RutaPrivada>
+        }
+      />
+      <Route
+        path="/mis-turnos/atender"
+        element={
+          <RutaDoctor>
+            <TurnosPacientes />
+          </RutaDoctor>
+        }
+      />
+      <Route
+        path="/mi-agenda"
+        element={
+          <RutaDoctor>
+            <MiAgenda />
+          </RutaDoctor>
         }
       />
       <Route

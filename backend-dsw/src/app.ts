@@ -18,7 +18,7 @@ import { iniciarTareaNoAsistidos } from './recursos/turno/turno.controlador.js';
 
 export const app = express();
 app.use(cors());
-// límite subido de 100kb (default) a 5mb: la foto de perfil viaja en base64 en el body.
+// subimos el limite de 100kb a 5mb porque la foto de perfil viaja en base64 en el body
 app.use(express.json({ limit: '5mb' }));
 
 app.use((req, res, next) => {
@@ -40,7 +40,7 @@ app.use(manejadorErrores);
 
 if (process.env.NODE_ENV !== 'test') {
   await syncSchema(); // never in production
-  iniciarTareaNoAsistidos(); // pasa turnos vencidos de "pendiente" a "no_asistido" cada 15min
+  iniciarTareaNoAsistidos(); // cada 15min pasa los turnos vencidos de pendiente a no_asistido
 
   app.listen(config.port, () => {
     console.log(`servidor escuchando en el puerto ${config.port}`);

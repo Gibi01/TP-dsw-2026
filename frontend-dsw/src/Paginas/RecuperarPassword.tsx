@@ -1,8 +1,6 @@
 // src/Paginas/RecuperarPassword.tsx
-// Placeholder: todavía no hay backend/servicio de mail para esto. El formulario
-// valida el email y muestra la confirmación, pero no dispara ningún envío real.
-// Cuando haya un servicio de mail, esto pasa a llamar a un endpoint real
-// (ver TODO en handleSubmit).
+// placeholder, todavia no hay servicio de mail. solo valida el email y muestra
+// la confirmacion pero no manda nada de verdad (ver el TODO abajo)
 import { useState, type FormEvent } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { Container, Paper, Typography, TextField, Button, Link, Alert, Box } from "@mui/material";
@@ -21,8 +19,7 @@ export default function RecuperarPassword() {
       return;
     }
 
-    // TODO: cuando exista un servicio de mail, reemplazar por:
-    // await api.post("/auth/recuperar-password", { email });
+    // TODO cuando haya servicio de mail: await api.post("/auth/recuperar-password", { email })
     setEnviado(true);
   };
 

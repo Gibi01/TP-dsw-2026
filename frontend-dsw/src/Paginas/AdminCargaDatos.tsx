@@ -1,6 +1,6 @@
 // src/Paginas/AdminCargaDatos.tsx
-// Página de administración: alta de especialidades, doctores y agendas.
-// Solo accesible por un usuario con rol admin (ver RutaAdmin).
+// pagina de admin para el alta de especialidades, doctores y agendas
+// solo entra un admin (RutaAdmin)
 
 import { useEffect, useState, type FormEvent } from "react";
 import {
@@ -333,7 +333,7 @@ function FormAgenda({ doctores, onCreada }: { doctores: Doctor[]; onCreada: () =
           </MenuItem>
         ))}
       </TextField>
-      <Stack direction="row" spacing={2}>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         <TextField
           fullWidth
           margin="normal"

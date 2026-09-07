@@ -18,7 +18,7 @@ import { verificarToken, autorizarRoles } from '../../shared/middlewares/auth.mi
 
 export const turnoRouter = Router();
 
-// Disponibilidad: se puede explorar sin estar logueado, recién hace falta login para reservar.
+// la disponibilidad se puede ver sin estar logueado, el login hace falta recien para reservar
 turnoRouter.get('/disponibilidad', disponibilidadDoctor);
 turnoRouter.get('/disponibilidad-especialidad', disponibilidadEspecialidad);
 

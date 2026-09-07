@@ -1,6 +1,6 @@
 import { BadRequestError } from './errores.js';
 
-// Arma el sanitizedInput a partir de los campos permitidos, descartando undefined.
+// arma el sanitizedInput solo con los campos permitidos, ignora los undefined
 export function limpiarInput(
   body: Record<string, unknown>,
   campos: string[]
@@ -14,7 +14,7 @@ export function limpiarInput(
   return sanitizedInput;
 }
 
-// Para creación (POST): exige que los campos obligatorios estén presentes y no vacíos.
+// para el POST, chequea que los campos obligatorios esten y no vacios
 export function validarCamposRequeridos(
   sanitizedInput: Record<string, unknown>,
   camposRequeridos: string[]

@@ -9,13 +9,13 @@ export async function obtenerPerfil(id: number): Promise<PerfilUsuario> {
 
 export interface DatosPerfilEditable {
   email?: string;
-  foto?: string;
+  foto?: string | null;
   obraSocial?: string;
   direccion?: string;
   telefonoCelular?: string;
 }
 
-// No incluye dni: el backend lo ignora en el update (es inmutable) aunque se mande.
+// no mando el dni porque el backend lo ignora en el update, es inmutable
 export async function actualizarPerfil(
   id: number,
   datos: DatosPerfilEditable

@@ -1,4 +1,4 @@
-// src/Componentes/RutaAdmin.tsx
+// src/Componentes/RutaDoctor.tsx
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../Contextos/AuthContext";
@@ -7,8 +7,8 @@ interface Props {
   children: ReactNode;
 }
 
-// igual que RutaPrivada pero pide rol admin. si esta logueado pero no es admin lo mando al inicio
-export default function RutaAdmin({ children }: Props) {
+// igual que RutaAdmin pero pide rol doctor. si esta logueado pero no es doctor lo mando al inicio
+export default function RutaDoctor({ children }: Props) {
   const { usuario, estaAutenticado } = useAuth();
   const location = useLocation();
 
@@ -22,7 +22,7 @@ export default function RutaAdmin({ children }: Props) {
     );
   }
 
-  if (usuario?.rol !== "admin") {
+  if (usuario?.rol !== "doctor") {
     return <Navigate to="/" replace />;
   }
 

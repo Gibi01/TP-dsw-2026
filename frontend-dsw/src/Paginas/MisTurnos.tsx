@@ -24,8 +24,7 @@ import {
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import type { EstadoTurno, Turno } from "../Tipos/dominio";
 import { obtenerMisTurnos, cancelarTurno } from "../Servicios/turnosService";
-import { useAuth } from "../Contextos/AuthContext";
-import MisTurnosDoctor from "./MisTurnosDoctor";
+import { formatearFechaHora } from "../Servicios/formatoFechaHora";
 
 const ETIQUETA_ESTADO: Record<EstadoTurno, string> = {
   pendiente: "Pendiente",
@@ -41,23 +40,18 @@ const COLOR_ESTADO: Record<EstadoTurno, "success" | "default" | "info" | "warnin
   no_asistido: "warning",
 };
 
+// vista de "mis turnos" como paciente, las reservas del usuario logueado con un doctor
+// es igual para cualquier rol, incluso si un doctor se atendio con otro colega
+// (la vista del doctor como "atiende a" esta en TurnosPacientes.tsx)
 export default function MisTurnos() {
-  const { usuario } = useAuth();
-  if (usuario?.rol === "doctor") {
-    return <MisTurnosDoctor />;
-  }
-  return <MisTurnosPaciente />;
-}
-
-function MisTurnosPaciente() {
   const [searchParams] = useSearchParams();
 
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Si se llega desde "Ver Turnos Reservados" (Inicio.tsx) con ?pendientes=1, arranca
-  // mostrando solo lo reservado y a futuro. El usuario puede sacar el filtro para ver el histórico.
+  // si viene de "Ver Turnos Reservados" en Inicio.tsx con ?pendientes=1, arranca filtrado
+  // a futuro. despues se puede sacar el filtro para ver el historico
   const [soloPendientes, setSoloPendientes] = useState(searchParams.get("pendientes") === "1");
 
   const turnosVisibles = useMemo(() => {
@@ -163,7 +157,7 @@ function MisTurnosPaciente() {
                        Dr./Dra. {turno.doctor.nombre} {turno.doctor.apellido}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {new Date(turno.fechaHoraTurno).toLocaleString("es-AR")}
+                      {formatearFechaHora(turno.fechaHoraTurno)}
                     </Typography>
                     <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap" }}>
                       {turno.doctor.especialidades?.map((esp) => (

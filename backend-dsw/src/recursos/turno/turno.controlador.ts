@@ -65,10 +65,7 @@ function formatoFecha(d: Date): string {
   return `${anio}-${mes}-${dia}`;
 }
 
-// Datos públicos de un doctor embebidos en un turno: nunca el Usuario completo (contraseña),
-// y las especialidades siempre como DTO plano -nunca la entidad Especialidad cruda-, porque
-// esa entidad puede traer su propia colección "doctores" populada en el identity map (p. ej.
-// disponibilidadEspecialidad la populatea) y volver a serializar el Usuario completo en un ciclo.
+// datos publicos del doctor que se embeben en un turno
 function doctorPublico(doctor: Doctor) {
   const usuario = doctor.usuario;
   const especialidades = doctor.especialidades?.isInitialized() ? doctor.especialidades.getItems() : [];
@@ -83,7 +80,7 @@ function doctorPublico(doctor: Doctor) {
   };
 }
 
-// Datos públicos del paciente de un turno, para que el doctor sepa con quién atiende.
+// datos publicos del paciente, para que el doctor sepa con quien atiende
 function pacientePublico(usuario: Usuario) {
   return {
     id: usuario.id,
@@ -95,9 +92,8 @@ function pacientePublico(usuario: Usuario) {
   };
 }
 
-// Arma a mano la respuesta pública de un turno: nunca se pasa la entidad completa a res.json,
-// porque si "usuario"/"doctor.usuario" quedan hidratados en el identity map su serialización
-// por defecto incluye el hash de la contraseña.
+// armamos a mano la respuesta del turno, nunca mandamos la entidad completa a res.json porque
+// si usuario/doctor.usuario quedaron hidratados se serializa hasta el hash de la contraseña
 function serializarTurno(turno: Turno) {
   return {
     id: turno.id,
@@ -111,8 +107,7 @@ function serializarTurno(turno: Turno) {
   };
 }
 
-// Igual que serializarTurno, pero además expone al paciente: lo usa el doctor para ver
-// con quién atiende en cada turno.
+// igual que serializarTurno pero suma el paciente, la usa el doctor para ver con quien atiende
 function serializarTurnoParaDoctor(turno: Turno) {
   return {
     ...serializarTurno(turno),
@@ -120,10 +115,9 @@ function serializarTurnoParaDoctor(turno: Turno) {
   };
 }
 
-// El sistema da por no asistido, automáticamente, cualquier turno pendiente cuya fecha/hora
-// ya pasó hace más de 12hs (el paciente no se presentó ni lo canceló). Se aplica en bloque
-// antes de cualquier lectura de turnos, y además corre solo cada tanto vía setInterval
-// (ver iniciarTareaNoAsistidos) para que el estado se actualice aunque nadie esté consultando.
+// pasa a no_asistido automaticamente cualquier turno pendiente que ya paso hace mas de 12hs
+// (ni se presento ni lo cancelo). se corre antes de cualquier lectura de turnos, y ademas
+// hay un setInterval aparte (iniciarTareaNoAsistidos) para que se actualice aunque nadie consulte
 async function marcarNoAsistidosVencidos(): Promise<void> {
   const limite = new Date(Date.now() - HORAS_LIMITE_NO_ASISTIDO * 60 * 60 * 1000);
   await em.nativeUpdate(
@@ -139,9 +133,9 @@ function iniciarTareaNoAsistidos(): void {
   }, 15 * 60 * 1000);
 }
 
-// Genera los horarios ofrecibles de un doctor en una fecha a partir de su Agenda real
-// (bloques semanales que carga el admin/doctor), no de una franja fija. Si el doctor no tiene
-// ningún bloque de agenda para ese día de la semana, no tiene horarios ese día.
+// genera los horarios del doctor para una fecha en base a su Agenda real (los bloques
+// semanales que carga el admin/doctor), no una franja fija. si no hay bloque ese dia de la
+// semana, no hay horarios ese dia
 async function generarSlotsDelDia(doctor: Doctor, fecha: string): Promise<Date[]> {
   const [anio, mes, dia] = fecha.split('-').map(Number);
   const diaSemana = new Date(anio, mes - 1, dia).getDay();
@@ -188,8 +182,8 @@ async function disponibilidadDoctor(req: Request, res: Response) {
 }
 
 // GET /api/turnos/disponibilidad-especialidad?especialidadId=&fecha=YYYY-MM-DD
-// Se listan los turnos (horarios) libres de esa especialidad, con el/los doctor/es que
-// atienden en cada uno: primero se elige un horario, después a qué doctor.
+// lista los horarios libres de esa especialidad con los doctores que atienden en cada uno.
+// aca primero se elige el horario y despues el doctor
 async function disponibilidadEspecialidad(req: Request, res: Response) {
   const idEspecialidad = parsearIdNumerico(req.query.especialidadId as string);
   const fecha = validarFecha(req.query.fecha);
@@ -202,7 +196,7 @@ async function disponibilidadEspecialidad(req: Request, res: Response) {
   const disponibles: { fechaHoraTurno: Date; doctor: ReturnType<typeof doctorPublico> }[] = [];
 
   for (const doctor of especialidad.doctores) {
-    if (!doctor.activo) continue; // dado de baja: no se ofrece como opción
+    if (!doctor.activo) continue; // si esta dado de baja no se ofrece
     const [ocupados, slotsBase] = await Promise.all([
       slotsOcupados(doctor, fecha),
       generarSlotsDelDia(doctor, fecha),
@@ -219,7 +213,7 @@ async function disponibilidadEspecialidad(req: Request, res: Response) {
   res.status(200).json({ message: 'turnos disponibles para la especialidad', data: disponibles });
 }
 
-// POST /api/turnos — el usuario logueado reserva un turno con un doctor en un horario puntual.
+// POST /api/turnos, el usuario logueado reserva un turno con un doctor en un horario puntual
 async function add(req: Request, res: Response) {
   const { doctorId, fechaHoraTurno } = req.body.sanitizedInput as {
     doctorId: unknown;
@@ -264,7 +258,7 @@ async function add(req: Request, res: Response) {
   res.status(201).json({ message: 'turno reservado', data: serializarTurno(turno) });
 }
 
-// GET /api/turnos/mios?fecha=&especialidadId=&doctorId= — histórico del usuario logueado.
+// GET /api/turnos/mios?fecha=&especialidadId=&doctorId=, historico del usuario logueado
 async function misTurnos(req: Request, res: Response) {
   await marcarNoAsistidosVencidos();
 
@@ -290,7 +284,7 @@ async function misTurnos(req: Request, res: Response) {
   res.status(200).json({ message: 'mis turnos', data: turnos.map(serializarTurno) });
 }
 
-// GET /api/turnos/atiendo?estado= — el doctor logueado ve los turnos que tiene que atender.
+// GET /api/turnos/atiendo?estado=, el doctor logueado ve los turnos que tiene que atender
 async function turnosQueAtiendo(req: Request, res: Response) {
   await marcarNoAsistidosVencidos();
 
@@ -311,8 +305,8 @@ async function turnosQueAtiendo(req: Request, res: Response) {
 async function findOne(req: Request, res: Response) {
   const id = parsearIdNumerico(req.params.id);
   await marcarNoAsistidosVencidos();
-  // No se populatea "usuario": alcanza con la referencia (trae el id) para validar el dueño,
-  // y evita serializar el usuario completo -contraseña hasheada incluida- en la respuesta.
+  // no populateamos "usuario", con la referencia (el id) alcanza para validar el dueño
+  // y asi no se serializa el usuario completo con la contraseña hasheada y todo
   const turno = await em.findOneOrFail(Turno, { id }, { populate: ['doctor', 'doctor.usuario', 'doctor.especialidades'] });
 
   const esDuenio = turno.usuario.id === req.usuario?.id;
@@ -325,10 +319,10 @@ async function findOne(req: Request, res: Response) {
   res.status(200).json({ message: 'turno encontrado', data: serializarTurno(turno) });
 }
 
-// PATCH /api/turnos/:id/cancelar — requiere motivoCancelacion en el body.
+// PATCH /api/turnos/:id/cancelar, requiere motivoCancelacion en el body
 async function cancelar(req: Request, res: Response) {
   const id = parsearIdNumerico(req.params.id);
-  // Igual que en findOne: no se populatea "usuario" para no filtrar la contraseña hasheada.
+  // igual que en findOne, no populateamos "usuario" para no filtrar la contraseña hasheada
   const turno = await em.findOneOrFail(Turno, { id }, { populate: ['doctor', 'doctor.usuario', 'doctor.especialidades'] });
 
   if (req.usuario?.rol !== 'admin' && turno.usuario.id !== req.usuario?.id) {
@@ -353,7 +347,7 @@ async function verificarDoctorDelTurno(req: Request, turno: Turno): Promise<void
   }
 }
 
-// PATCH /api/turnos/:id/asistio — el doctor confirma que el paciente se presentó.
+// PATCH /api/turnos/:id/asistio, el doctor confirma que el paciente se presento
 async function marcarAsistido(req: Request, res: Response) {
   const id = parsearIdNumerico(req.params.id);
   const turno = await em.findOneOrFail(Turno, { id }, { populate: ['doctor', 'doctor.usuario', 'doctor.especialidades', 'usuario'] });
@@ -368,7 +362,7 @@ async function marcarAsistido(req: Request, res: Response) {
   res.status(200).json({ message: 'turno marcado como asistido', data: serializarTurnoParaDoctor(turno) });
 }
 
-// PATCH /api/turnos/:id/no-asistio — el doctor marca manualmente que el paciente no se presentó.
+// PATCH /api/turnos/:id/no-asistio, el doctor marca a mano que el paciente no se presento
 async function marcarNoAsistido(req: Request, res: Response) {
   const id = parsearIdNumerico(req.params.id);
   const turno = await em.findOneOrFail(Turno, { id }, { populate: ['doctor', 'doctor.usuario', 'doctor.especialidades', 'usuario'] });

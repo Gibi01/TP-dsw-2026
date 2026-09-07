@@ -12,7 +12,11 @@ import {
   Alert,
   Box,
   CircularProgress,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import type { RegistroUsuarioForm } from "../Tipos/dominio";
 import { registrar } from "../Servicios/authService";
 
@@ -30,6 +34,8 @@ export default function Registro() {
   const [errors, setErrors] = useState<Partial<Record<keyof RegistroUsuarioForm, string>>>({});
   const [errorApi, setErrorApi] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [mostrarConfirmPassword, setMostrarConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange =
@@ -88,7 +94,7 @@ export default function Registro() {
 
         <Box component="form" onSubmit={handleSubmit} noValidate>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Nombre"
@@ -98,7 +104,7 @@ export default function Registro() {
                 helperText={errors.nombre}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Apellido"
@@ -108,7 +114,7 @@ export default function Registro() {
                 helperText={errors.apellido}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="DNI"
@@ -118,7 +124,7 @@ export default function Registro() {
                 helperText={errors.dni}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 type="email"
@@ -129,26 +135,58 @@ export default function Registro() {
                 helperText={errors.email}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
-                type="password"
+                type={mostrarPassword ? "text" : "password"}
                 label="Contraseña"
                 value={form.password}
                 onChange={handleChange("password")}
                 error={!!errors.password}
                 helperText={errors.password}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                          onClick={() => setMostrarPassword((prev) => !prev)}
+                          edge="end"
+                        >
+                          {mostrarPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
-                type="password"
+                type={mostrarConfirmPassword ? "text" : "password"}
                 label="Confirmar contraseña"
                 value={form.confirmPassword}
                 onChange={handleChange("confirmPassword")}
                 error={!!errors.confirmPassword}
                 helperText={errors.confirmPassword}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label={
+                            mostrarConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                          }
+                          onClick={() => setMostrarConfirmPassword((prev) => !prev)}
+                          edge="end"
+                        >
+                          {mostrarConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
             </Grid>
           </Grid>

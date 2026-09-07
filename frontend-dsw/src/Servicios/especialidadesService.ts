@@ -7,7 +7,7 @@ export async function getEspecialidades(): Promise<Especialidad[]> {
   return respuesta.data;
 }
 
-// idEspecialidad lo asigna el backend (autoincrement): nunca se manda desde el cliente.
+// idEspecialidad lo pone el backend solo (autoincrement), nunca se manda desde el front
 export async function crearEspecialidad(
   datos: Pick<Especialidad, "descripcionEsp">
 ): Promise<Especialidad> {

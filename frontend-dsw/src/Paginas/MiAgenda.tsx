@@ -1,6 +1,6 @@
-// src/Paginas/MisTurnosDoctor.tsx
-// Vista de "Mis turnos" para un usuario con rol doctor: primero su propia agenda
-// (que puede administrar), y debajo el listado de turnos pendientes que tiene que atender.
+// src/Paginas/MiAgenda.tsx
+// aca el doctor logueado maneja su agenda (bloques semanales recurrentes)
+// esto no toca turnos ya reservados, solo los bloques que definen que horarios se ofrecen
 import { useEffect, useState, type FormEvent } from "react";
 import {
   Container,
@@ -25,21 +25,9 @@ import {
   Divider,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
-import type { Doctor, TurnoParaDoctor } from "../Tipos/dominio";
+import type { Doctor } from "../Tipos/dominio";
 import { getMisDatosDeDoctor } from "../Servicios/doctoresService";
-import {
-  getAgendas,
-  crearAgenda,
-  eliminarAgenda,
-  type Agenda,
-} from "../Servicios/agendaService";
-import {
-  obtenerTurnosQueAtiendo,
-  marcarTurnoAsistido,
-  marcarTurnoNoAsistido,
-} from "../Servicios/turnosService";
+import { getAgendas, crearAgenda, eliminarAgenda, type Agenda } from "../Servicios/agendaService";
 
 const DIAS_SEMANA = [
   { value: 0, label: "Domingo" },
@@ -51,36 +39,25 @@ const DIAS_SEMANA = [
   { value: 6, label: "Sábado" },
 ];
 
-export default function MisTurnosDoctor() {
+export default function MiAgenda() {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [agendas, setAgendas] = useState<Agenda[]>([]);
-  const [turnos, setTurnos] = useState<TurnoParaDoctor[]>([]);
 
-  const cargarTodo = async (matricula: number) => {
-    const [agendasRes, turnosRes] = await Promise.all([
-      getAgendas(matricula),
-      obtenerTurnosQueAtiendo("pendiente"),
-    ]);
-    setAgendas(agendasRes);
-    setTurnos(turnosRes);
+  const cargarAgendas = (matricula: number) => {
+    getAgendas(matricula).then(setAgendas);
   };
 
   useEffect(() => {
     getMisDatosDeDoctor()
-      .then(async (doc) => {
+      .then((doc) => {
         setDoctor(doc);
-        await cargarTodo(doc.matricula);
+        cargarAgendas(doc.matricula);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "No se pudo cargar tu información."))
       .finally(() => setLoading(false));
   }, []);
-
-  const refrescar = () => {
-    if (doctor) cargarTodo(doctor.matricula);
-  };
 
   if (loading) {
     return (
@@ -102,25 +79,19 @@ export default function MisTurnosDoctor() {
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Mis turnos
+          Mi agenda
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Dr./Dra. {doctor.nombre} {doctor.apellido} — Matrícula {doctor.matricula}
         </Typography>
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Mi agenda
-        </Typography>
-        <ListaAgendaPropia matricula={doctor.matricula} agendas={agendas} onCambio={refrescar} />
-      </Paper>
-
       <Paper variant="outlined" sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Turnos pendientes
-        </Typography>
-        <ListaTurnosPendientes turnos={turnos} onCambio={refrescar} />
+        <ListaAgendaPropia
+          matricula={doctor.matricula}
+          agendas={agendas}
+          onCambio={() => cargarAgendas(doctor.matricula)}
+        />
       </Paper>
     </Container>
   );
@@ -295,115 +266,6 @@ function ListaAgendaPropia({
           <Button onClick={() => setBorrando(null)}>Cancelar</Button>
           <Button color="error" variant="contained" onClick={confirmarBorrado}>
             Eliminar
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
-  );
-}
-
-function ListaTurnosPendientes({
-  turnos,
-  onCambio,
-}: {
-  turnos: TurnoParaDoctor[];
-  onCambio: () => void;
-}) {
-  const [accion, setAccion] = useState<{ turno: TurnoParaDoctor; tipo: "asistio" | "no-asistio" } | null>(
-    null
-  );
-  const [procesando, setProcesando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const confirmar = async () => {
-    if (!accion) return;
-    setProcesando(true);
-    setError(null);
-    try {
-      if (accion.tipo === "asistio") {
-        await marcarTurnoAsistido(accion.turno.id);
-      } else {
-        await marcarTurnoNoAsistido(accion.turno.id);
-      }
-      setAccion(null);
-      onCambio();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo actualizar el turno.");
-    } finally {
-      setProcesando(false);
-    }
-  };
-
-  if (turnos.length === 0) {
-    return <Alert severity="info">No tenés turnos pendientes por atender.</Alert>;
-  }
-
-  return (
-    <>
-      <Stack spacing={2}>
-        {turnos.map((turno) => (
-          <Paper key={turno.id} variant="outlined" sx={{ p: 2 }}>
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap" }}
-            >
-              <Box>
-                <Typography variant="subtitle1">
-                  {turno.paciente.nombre} {turno.paciente.apellido}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {new Date(turno.fechaHoraTurno).toLocaleString("es-AR")}
-                </Typography>
-                {turno.paciente.dni && (
-                  <Typography variant="body2" color="text.secondary">
-                    DNI {turno.paciente.dni}
-                  </Typography>
-                )}
-              </Box>
-              <Stack direction="row" spacing={1}>
-                <Button
-                  size="small"
-                  color="success"
-                  variant="outlined"
-                  startIcon={<CheckCircleIcon />}
-                  onClick={() => setAccion({ turno, tipo: "asistio" })}
-                >
-                  Asistió
-                </Button>
-                <Button
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                  startIcon={<CancelIcon />}
-                  onClick={() => setAccion({ turno, tipo: "no-asistio" })}
-                >
-                  No asistió
-                </Button>
-              </Stack>
-            </Stack>
-          </Paper>
-        ))}
-      </Stack>
-
-      <Dialog open={accion !== null} onClose={() => setAccion(null)}>
-        <DialogTitle>Confirmar</DialogTitle>
-        <DialogContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          <Typography>
-            {accion?.tipo === "asistio"
-              ? "¿El paciente asistió a este turno, quiere cambiar el estado del turno a Asistido?"
-              : "¿Confirmás que el paciente no asistió a este turno?"}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAccion(null)}>Cancelar</Button>
-          <Button variant="contained" onClick={confirmar} disabled={procesando}>
-            {procesando ? <CircularProgress size={20} color="inherit" /> : "Confirmar"}
           </Button>
         </DialogActions>
       </Dialog>

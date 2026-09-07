@@ -1,8 +1,8 @@
 import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { Doctor } from '../doctor/doctor.entidad.js';
 
-// Bloque de disponibilidad semanal recurrente de un doctor. Un doctor puede tener
-// varios bloques (p. ej. lunes mañana y lunes tarde, con distinta duración de turno).
+// bloque de disponibilidad semanal recurrente de un doctor. puede tener varios bloques
+// (ej lunes manana y lunes tarde con distinta duracion de turno)
 @Entity()
 export class Agenda {
   @PrimaryKey()

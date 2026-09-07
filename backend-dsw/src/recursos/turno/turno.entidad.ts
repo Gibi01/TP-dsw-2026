@@ -2,9 +2,9 @@ import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
 import { Usuario } from '../usuarios/usuario.entidad.js';
 import { Doctor } from '../doctor/doctor.entidad.js';
 
-// Pendiente: recién creado. Cancelado: el paciente lo canceló. Asistido: el paciente se
-// presentó (lo confirma el doctor). No asistido: no se presentó ni canceló (lo aplica el
-// doctor manualmente, o el sistema automáticamente 12hs después de la fecha/hora del turno).
+// pendiente: recien creado. cancelado: lo cancelo el paciente. asistido: se presento y lo
+// confirma el doctor. no_asistido: no aparecio ni cancelo (lo pone el doctor a mano, o el
+// sistema solo a las 12hs de pasada la fecha del turno)
 export type EstadoTurno = 'pendiente' | 'cancelado' | 'asistido' | 'no_asistido';
 
 @Entity()

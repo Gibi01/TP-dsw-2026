@@ -31,22 +31,21 @@ export function verificarToken(req: Request, res: Response, next: NextFunction) 
   }
 }
 
-// Como verificarToken, pero no falla si no hay token o es inválido: simplemente no asigna
-// req.usuario. Sirve para rutas públicas cuyo resultado varía si quien pregunta es admin
-// (p. ej. el listado de doctores, que a un admin le muestra también los dados de baja).
+// version de verificarToken que no explota si no hay token, total no asigna req.usuario y listo.
+// la uso en rutas publicas que cambian un poco si sos admin (ej el listado de doctores)
 export function intentarVerificarToken(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (header && header.startsWith('Bearer ')) {
     try {
       req.usuario = jwt.verify(header.slice('Bearer '.length), config.jwt.secret) as JwtPayload;
     } catch {
-      // token inválido/expirado: se ignora, la ruta sigue como si no hubiera token
+      // token invalido o vencido, no importa, seguimos como si no hubiera token
     }
   }
   next();
 }
 
-// Requiere que req.usuario tenga uno de los roles indicados. Usar siempre después de verificarToken.
+// chequea que req.usuario tenga alguno de estos roles, siempre va despues de verificarToken
 export function autorizarRoles(...rolesPermitidos: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.usuario) {

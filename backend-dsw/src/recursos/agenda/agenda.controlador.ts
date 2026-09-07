@@ -6,8 +6,8 @@ import { orm } from '../../shared/orm.js';
 import { limpiarInput, validarCamposRequeridos, parsearIdNumerico } from '../../shared/validacion.js';
 import { BadRequestError, ForbiddenError } from '../../shared/errores.js';
 
-// Un doctor solo puede administrar su propia agenda (identificada por su matrícula real,
-// resuelta a partir de la cuenta logueada); un admin puede administrar la de cualquiera.
+// el doctor solo administra su propia agenda (la matricula se resuelve a partir de la
+// cuenta logueada), el admin puede tocar la de cualquiera
 async function verificarDuenioAgenda(req: Request, matriculaDeLaAgenda: number): Promise<void> {
   if (req.usuario?.rol === 'admin') return;
   const doctor = await resolverDoctorDelUsuario(req.usuario!.id);
@@ -37,8 +37,8 @@ function minutosDesde(horaHHMM: string): number {
   return h * 60 + m;
 }
 
-// Valida formato/consistencia de los campos de una agenda ya en sanitizedInput.
-// Se corre tanto en creación (todos los campos) como en edición (solo los presentes).
+// valida formato y consistencia de los campos de la agenda ya sanitizados.
+// se usa tanto en creacion (todos los campos) como en edicion (solo los que vengan)
 function validarDatosAgenda(datos: Record<string, unknown>) {
   if (datos.diaSemana !== undefined) {
     const dia = Number(datos.diaSemana);

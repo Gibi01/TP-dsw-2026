@@ -30,7 +30,7 @@ function sanitizeusuarioInput(req: Request, res: Response, next: NextFunction) {
 
 function validarUsuarioCreacion(req: Request, res: Response, next: NextFunction) {
   validarCamposRequeridos(req.body.sanitizedInput, CAMPOS_REQUERIDOS);
-  // Nadie puede autoasignarse el rol admin al registrarse.
+  // nadie se puede poner admin solo al registrarse
   req.body.sanitizedInput.rol = 'paciente';
   next();
 }
@@ -77,7 +77,7 @@ async function update(req: Request, res: Response) {
 
   const cambios: Record<string, unknown> = { ...req.body.sanitizedInput };
 
-  // El DNI no se puede modificar una vez cargado, ni siquiera por un admin desde este endpoint.
+  // el dni no se puede tocar una vez cargado, ni un admin desde este endpoint
   delete cambios.dni;
 
   if (cambios.password) {
@@ -85,7 +85,7 @@ async function update(req: Request, res: Response) {
   }
   if (cambios.rol !== undefined) {
     if (req.usuario?.rol !== 'admin' || !ROLES_VALIDOS.includes(cambios.rol as string)) {
-      delete cambios.rol; // sólo un admin puede reasignar roles, y sólo a valores válidos
+      delete cambios.rol; // el rol solo lo cambia un admin, y a un valor valido
     }
   }
   if (cambios.email !== undefined && cambios.email !== usuarioToUpdate.email) {

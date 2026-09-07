@@ -1,7 +1,7 @@
 // src/Paginas/DoctorDetalle.tsx
-// Detalle de un doctor: su info + los horarios disponibles de una fecha elegida.
-// El usuario hace click en un horario, confirma, y se reserva el turno.
-// Ver la agenda es público; reservar requiere sesión iniciada.
+// pagina de detalle del doctor: info + horarios disponibles de la fecha elegida
+// se hace click en un horario, se confirma y listo, se reserva el turno
+// ver la agenda es publico, para reservar hay que estar logueado
 
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -27,6 +27,7 @@ import type { Doctor } from "../Tipos/dominio";
 import { getDoctor } from "../Servicios/doctoresService";
 import { getDisponibilidadDoctor, reservarTurno } from "../Servicios/turnosService";
 import { useAuth } from "../Contextos/AuthContext";
+import { formatearHora, formatearFechaHora } from "../Servicios/formatoFechaHora";
 
 function hoyISO(): string {
   const hoy = new Date();
@@ -159,9 +160,9 @@ export default function DoctorDetalle() {
           type="date"
           label="Fecha"
           value={fecha}
-          onChange={(e) => setFecha(e.target.value)}
+          onChange={(e) => setFecha(e.target.value < hoyISO() ? hoyISO() : e.target.value)}
           sx={{ mb: 3 }}
-          slotProps={{ inputLabel: { shrink: true } }}
+          slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: hoyISO() } }}
         />
 
         {errorSlots && (
@@ -190,7 +191,7 @@ export default function DoctorDetalle() {
           >
             {slots.map((slot) => (
               <Button key={slot} variant="outlined" onClick={() => elegirSlot(slot)}>
-                {new Date(slot).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                {formatearHora(slot)}
               </Button>
             ))}
           </Box>
@@ -208,7 +209,7 @@ export default function DoctorDetalle() {
           {slotElegido && (
             <Typography>
               Turno con Dr./Dra. {doctor.nombre} {doctor.apellido} el{" "}
-              {new Date(slotElegido).toLocaleString("es-AR")}.
+              {formatearFechaHora(slotElegido)}.
             </Typography>
           )}
         </DialogContent>

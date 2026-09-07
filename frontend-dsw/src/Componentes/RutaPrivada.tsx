@@ -7,8 +7,8 @@ interface Props {
   children: ReactNode;
 }
 
-// Envuelve una ruta que requiere sesión iniciada. Si no hay sesión, redirige a /login
-// con un mensaje y recuerda desde dónde vino para volver ahí después de loguearse.
+// ruta que necesita sesion. si no hay sesion manda a /login y guarda de donde vino
+// para volver ahi despues de loguearse
 export default function RutaPrivada({ children }: Props) {
   const { estaAutenticado } = useAuth();
   const location = useLocation();

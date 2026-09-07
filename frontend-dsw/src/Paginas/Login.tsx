@@ -11,7 +11,11 @@ import {
   Alert,
   Box,
   CircularProgress,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import type { LoginForm } from "../Tipos/dominio";
 import { login } from "../Servicios/authService";
 import { useAuth } from "../Contextos/AuthContext";
@@ -28,6 +32,7 @@ export default function Login() {
   const [errors, setErrors] = useState<Partial<Record<keyof LoginForm, string>>>({});
   const [errorApi, setErrorApi] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [mostrarPassword, setMostrarPassword] = useState(false);
 
   const { guardarSesion } = useAuth();
   const navigate = useNavigate();
@@ -57,7 +62,7 @@ export default function Login() {
     try {
       const { token, usuario } = await login(form);
       guardarSesion(token, usuario);
-      navigate(state.from ?? "/", { replace: true });
+      navigate("/", { replace: true });
     } catch (err) {
       setErrorApi(err instanceof Error ? err.message : "No se pudo iniciar sesión.");
     } finally {
@@ -97,13 +102,28 @@ export default function Login() {
           />
           <TextField
             fullWidth
-            type="password"
+            type={mostrarPassword ? "text" : "password"}
             label="Contraseña"
             margin="normal"
             value={form.password}
             onChange={handleChange("password")}
             error={!!errors.password}
             helperText={errors.password}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      onClick={() => setMostrarPassword((prev) => !prev)}
+                      edge="end"
+                    >
+                      {mostrarPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
 
           <Button

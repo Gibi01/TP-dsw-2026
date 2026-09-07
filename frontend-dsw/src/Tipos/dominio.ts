@@ -1,15 +1,13 @@
 // src/Tipos/dominio.ts
-// Interfaces del modelo de dominio. Reflejan el shape real que devuelve el backend
-// (ver backend-dsw/src/recursos/*/*.entidad.ts), no un mock aparte.
+// interfaces del dominio, calcadas de lo que devuelve el backend de verdad
 
 export interface Especialidad {
   idEspecialidad: number;
   descripcionEsp: string;
 }
 
-// El doctor es también un Usuario (cuenta propia): nombre/apellido/email/foto viven ahí,
-// no se duplican en Doctor. "activo" es la baja lógica: un doctor inactivo no se ofrece
-// como opción al paciente bajo ningún concepto.
+// el doctor tambien es un usuario, nombre/apellido/email/foto estan ahi, no se duplican
+// "activo" es la baja logica, si esta en false no se lo ofrece nunca como opcion
 export interface Doctor {
   matricula: number;
   nombre: string;
@@ -40,6 +38,7 @@ export interface UsuarioSesion {
   apellido: string;
   email: string;
   rol: string;
+  foto?: string | null;
 }
 
 export interface PerfilUsuario {
@@ -49,15 +48,14 @@ export interface PerfilUsuario {
   email: string;
   rol: string;
   dni?: string;
-  foto?: string;
+  foto?: string | null;
   obraSocial?: string;
   direccion?: string;
   telefonoCelular?: string;
 }
 
-// Pendiente: recién reservado. Cancelado: el paciente lo canceló. Asistido: el paciente se
-// presentó (lo confirma el doctor). No asistido: no se presentó ni canceló (lo aplica el
-// doctor manualmente, o el sistema automáticamente 12hs después de la fecha/hora del turno).
+// pendiente = recien reservado, cancelado = el paciente lo cancelo, asistido = vino (lo confirma
+// el doctor), no_asistido = no vino ni cancelo (a mano o automatico a las 12hs del turno)
 export type EstadoTurno = "pendiente" | "cancelado" | "asistido" | "no_asistido";
 
 export interface Turno {
@@ -71,7 +69,7 @@ export interface Turno {
   motivoCancelacion: string | null;
 }
 
-// Datos del paciente embebidos en un turno, tal como los ve el doctor en "Mis turnos".
+// datos del paciente que vienen adentro del turno, como los ve el doctor en "Mis turnos"
 export interface PacienteDeTurno {
   id: number;
   nombre: string;
@@ -85,8 +83,8 @@ export interface TurnoParaDoctor extends Turno {
   paciente: PacienteDeTurno;
 }
 
-// Un horario disponible de una especialidad: primero se elige el horario, después el
-// doctor que atiende en ese horario (puede haber más de uno).
+// un horario disponible de una especialidad, primero se elige el horario y despues el
+// doctor que atiende ahi (puede haber mas de uno)
 export interface SlotEspecialidad {
   fechaHoraTurno: string;
   doctor: Doctor;

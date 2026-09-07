@@ -12,7 +12,7 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Card from "../Componentes/Card";
 
-// Hardcodeados (datos de ejemplo, no son un número real del sanatorio).
+// hardcodeados, son datos de ejemplo no un numero real del sanatorio
 const TELEFONO_FIJO = "011-4782-3956";
 const TELEFONO_WHATSAPP = "011-15-6294-7183";
 

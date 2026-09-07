@@ -2,8 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { NotFoundError as OrmNotFoundError, ValidationError as OrmValidationError } from '@mikro-orm/core';
 import { ErrorApi } from './errores.js';
 
-// Middleware de errores: debe declararse último y con 4 parámetros para que Express lo reconozca como tal.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// manejador de errores global, tiene que ir al final de todo (despues del catch-all de ruta no encontrada)
 export function manejadorErrores(err: unknown, req: Request, res: Response, next: NextFunction) {
   if (err instanceof ErrorApi) {
     return res.status(err.status).json({ message: err.message });

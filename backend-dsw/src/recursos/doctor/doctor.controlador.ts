@@ -10,7 +10,7 @@ import { ConflictError, ForbiddenError, NotFoundError } from '../../shared/error
 const em = orm.em;
 const SALT_ROUNDS = 10;
 
-// Alta: además de la matrícula, se cargan los datos de la cuenta (Usuario) del doctor.
+// en el alta ademas de la matricula se cargan los datos de la cuenta (Usuario) del doctor
 const CAMPOS_ALTA = [
   'matricula',
   'nombre',
@@ -22,8 +22,8 @@ const CAMPOS_ALTA = [
 ];
 const CAMPOS_REQUERIDOS_ALTA = ['matricula', 'nombre', 'apellido', 'email', 'password', 'dni'];
 
-// Edición: la matrícula y la cuenta (Usuario) no se tocan por acá; el doctor edita su perfil
-// por /api/usuarios/:id como cualquier usuario, y la matrícula es inmutable (es la PK).
+// en edicion no se toca la matricula ni la cuenta, eso se edita en /api/usuarios/:id como
+// cualquier usuario. la matricula es la PK, no se puede cambiar
 const CAMPOS_EDICION = ['especialidadIds', 'activo'];
 
 function sanitizeDoctorAlta(req: Request, res: Response, next: NextFunction) {
@@ -41,11 +41,10 @@ function validarDoctorCreacion(req: Request, res: Response, next: NextFunction) 
   next();
 }
 
-// Respuesta pública de un doctor: nunca se serializa el Usuario completo (evita filtrar el
-// hash de la contraseña); solo los datos de perfil que hacen falta para mostrarlo. Las
-// especialidades van como DTO plano, nunca la entidad Especialidad cruda: esa entidad puede
-// traer su propia colección "doctores" populada en otro punto del mismo request y volver a
-// serializar el Usuario completo en un ciclo.
+// respuesta publica del doctor, nunca serializamos el Usuario completo (se filtraria el hash
+// de la contraseña), solo lo que hace falta mostrar. las especialidades van como dto plano y
+// no la entidad Especialidad cruda, porque esa puede traer su coleccion "doctores" populada
+// en otro punto del mismo request y terminamos serializando el Usuario de nuevo en un ciclo
 function serializarDoctor(doctor: Doctor) {
   const usuario = doctor.usuario;
   const especialidades = doctor.especialidades.isInitialized() ? doctor.especialidades.getItems() : [];
@@ -73,8 +72,8 @@ async function resolverDoctorDelUsuario(usuarioId: number): Promise<Doctor> {
 
 async function findAll(req: Request, res: Response) {
   const filtro: Record<string, unknown> = {};
-  // Un admin ve también los doctores dados de baja (para poder reactivarlos); cualquier
-  // otro (paciente, doctor, o sin sesión) solo ve los activos: no deben ofrecerse como opción.
+  // el admin ve tambien los dados de baja (para poder reactivarlos), el resto (paciente,
+  // doctor o sin sesion) solo ve los activos
   if (req.usuario?.rol !== 'admin') {
     filtro.activo = true;
   }
@@ -91,7 +90,7 @@ async function findOne(req: Request, res: Response) {
   res.status(200).json({ message: 'encontrado doctor', data: serializarDoctor(doctor) });
 }
 
-// GET /api/doctores/mios — el doctor logueado consulta su propio registro (matrícula, etc).
+// GET /api/doctores/mios, el doctor logueado consulta su propio registro (matricula, etc)
 async function misDatos(req: Request, res: Response) {
   const doctor = await resolverDoctorDelUsuario(req.usuario!.id);
   res.status(200).json({ message: 'tu registro de doctor', data: serializarDoctor(doctor) });
@@ -158,8 +157,8 @@ async function update(req: Request, res: Response) {
   res.status(200).json({ message: 'doctor actualizado', data: serializarDoctor(doctor) });
 }
 
-// DELETE /api/doctores/:matricula — baja lógica: nunca se borra de la base (ni el doctor
-// ni sus turnos), solo deja de ofrecerse como opción de reserva.
+// DELETE /api/doctores/:matricula, es baja logica nomas, nunca se borra de la base
+// (ni el doctor ni sus turnos), solo deja de aparecer como opcion para reservar
 async function remove(req: Request, res: Response) {
   const matricula = parsearIdNumerico(req.params.matricula);
   const doctor = await em.findOneOrFail(Doctor, { matricula });

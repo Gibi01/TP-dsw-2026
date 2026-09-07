@@ -11,8 +11,8 @@ export class Usuario {
   @Property({ nullable: false })
   apellido!: string;
 
-  // hidden: true asegura que el hash nunca viaje en un JSON, incluso si en algún endpoint
-  // se termina serializando un Usuario completo (relación populada, entidad devuelta directo, etc).
+  // con hidden: true el hash nunca viaja en un JSON, ni aunque en algun endpoint se
+  // termine serializando el Usuario completo
   @Property({ nullable: false, hidden: true })
   password!: string;
 
@@ -22,12 +22,12 @@ export class Usuario {
   @Property({ nullable: false })
   rol!: string;
 
-  // Datos de perfil, editables por el usuario salvo el DNI (ver comentario en update()).
+  // dato de perfil, se puede editar salvo el dni (ver el comentario en update())
   @Property({ nullable: true })
   dni?: string;
 
-  // longtext: guarda la imagen en base64 (no hay almacenamiento de archivos en el
-  // proyecto), un varchar corto no alcanza para un .png codificado.
+  // longtext porque guardamos la imagen en base64 (no hay storage de archivos en el
+  // proyecto), un varchar corto no entra un .png codificado
   @Property({ nullable: true, columnType: 'longtext' })
   foto?: string;
 
