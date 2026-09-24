@@ -16,6 +16,7 @@ const { Doctor } = await import('../../../dist/recursos/doctor/doctor.entidad.js
 const { Usuario } = await import('../../../dist/recursos/usuarios/usuario.entidad.js');
 const { Agenda } = await import('../../../dist/recursos/agenda/agenda.entidad.js');
 const { Turno } = await import('../../../dist/recursos/turno/turno.entidad.js');
+const { ObraSocial } = await import('../../../dist/recursos/obraSocial/obraSocial.entidad.js');
 
 const sufijo = Date.now();
 const MATRICULA = 900000 + (sufijo % 1000);
@@ -34,6 +35,7 @@ function fechaManana(): { fecha: string; diaSemana: number } {
 }
 
 let idEspecialidad: number;
+let idObraSocial: number;
 let tokenDoctor: string;
 let tokenPaciente: string;
 let agendaId: number;
@@ -47,6 +49,7 @@ async function limpiar() {
   await em.nativeDelete(Doctor, { matricula: MATRICULA });
   await em.nativeDelete(Usuario, { email: { $in: [EMAIL_DOCTOR, EMAIL_PACIENTE] } });
   await em.nativeDelete(Especialidad, { descripcionEsp: `Especialidad test ${sufijo}` });
+  await em.nativeDelete(ObraSocial, { nombre: `Obra social test ${sufijo}` });
 }
 
 beforeAll(limpiar);
@@ -127,12 +130,20 @@ describe('Doctor como usuario + estados de turno', () => {
   });
 
   it('un paciente se registra, ve la disponibilidad y reserva dos turnos', async () => {
+    const resObraSocial = await request(app)
+      .post('/api/obras-sociales')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send({ nombre: `Obra social test ${sufijo}` });
+    expect(resObraSocial.status).toBe(201);
+    idObraSocial = resObraSocial.body.data.id;
+
     const resRegistro = await request(app).post('/api/usuarios').send({
       nombre: 'Paciente',
       apellido: 'Test',
       email: EMAIL_PACIENTE,
       password: '123456',
       dni: `PAC${sufijo}`,
+      obraSocialIds: [idObraSocial],
     });
     expect(resRegistro.status).toBe(201);
 
@@ -151,15 +162,16 @@ describe('Doctor como usuario + estados de turno', () => {
     const resTurnoA = await request(app)
       .post('/api/turnos')
       .set('Authorization', `Bearer ${tokenPaciente}`)
-      .send({ doctorId: MATRICULA, fechaHoraTurno: slotA });
+      .send({ doctorId: MATRICULA, fechaHoraTurno: slotA, obraSocialId: idObraSocial });
     expect(resTurnoA.status).toBe(201);
     expect(resTurnoA.body.data.estado).toBe('pendiente');
+    expect(resTurnoA.body.data.obraSocial.id).toBe(idObraSocial);
     turnoAsistidoId = resTurnoA.body.data.id;
 
     const resTurnoB = await request(app)
       .post('/api/turnos')
       .set('Authorization', `Bearer ${tokenPaciente}`)
-      .send({ doctorId: MATRICULA, fechaHoraTurno: slotB });
+      .send({ doctorId: MATRICULA, fechaHoraTurno: slotB, obraSocialId: idObraSocial });
     expect(resTurnoB.status).toBe(201);
     turnoNoAsistidoId = resTurnoB.body.data.id;
   });
@@ -175,7 +187,15 @@ describe('Doctor como usuario + estados de turno', () => {
     expect(turno.paciente.password).toBeUndefined();
   });
 
-  it('el doctor marca un turno como asistido, y ya no se puede cancelar ni re-marcar', async () => {
+  it('el doctor solo puede marcar asistencia durante los 15 minutos posteriores al turno', async () => {
+    const resAntesDelTurno = await request(app)
+      .patch(`/api/turnos/${turnoAsistidoId}/asistio`)
+      .set('Authorization', `Bearer ${tokenDoctor}`);
+    expect(resAntesDelTurno.status).toBe(409);
+
+    await orm.em.nativeUpdate(Turno, { id: turnoAsistidoId }, { fechaHoraTurno: new Date() });
+    orm.em.clear();
+
     const res = await request(app)
       .patch(`/api/turnos/${turnoAsistidoId}/asistio`)
       .set('Authorization', `Bearer ${tokenDoctor}`);
@@ -194,12 +214,19 @@ describe('Doctor como usuario + estados de turno', () => {
     expect(resReAsistido.status).toBe(409);
   });
 
-  it('el doctor marca manualmente un turno como no asistido', async () => {
+  it('el sistema marca como no asistido un turno pendiente luego de los 15 minutos de cortesía', async () => {
+    const vencido = new Date(Date.now() - 16 * 60 * 1000);
+    await orm.em.nativeUpdate(Turno, { id: turnoNoAsistidoId }, { fechaHoraTurno: vencido });
+    orm.em.clear();
+
     const res = await request(app)
-      .patch(`/api/turnos/${turnoNoAsistidoId}/no-asistio`)
+      .get('/api/turnos/atiendo?estado=pendiente')
       .set('Authorization', `Bearer ${tokenDoctor}`);
     expect(res.status).toBe(200);
-    expect(res.body.data.estado).toBe('no_asistido');
+    expect(res.body.data.some((turno: any) => turno.id === turnoNoAsistidoId)).toBe(false);
+
+    const turno = await orm.em.fork().findOneOrFail(Turno, { id: turnoNoAsistidoId });
+    expect(turno.estado).toBe('no_asistido');
   });
 
   it('un paciente no puede marcar turnos como asistidos (no es doctor)', async () => {

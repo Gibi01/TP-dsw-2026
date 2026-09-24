@@ -7,7 +7,21 @@ Button
 
 } from "@mui/material";
 
-export default function tarjetaMedico({doctor}){
+export interface DoctorCardData {
+    id: number | string;
+    nombre: string;
+    apellido: string;
+    especialidad: string;
+    matricula: number | string;
+    email: string;
+    telefono: string;
+}
+
+interface DoctorCardProps {
+    doctor: DoctorCardData;
+}
+
+export default function tarjetaMedico({ doctor }: DoctorCardProps){
 
     return(
 

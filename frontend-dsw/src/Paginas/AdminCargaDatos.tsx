@@ -21,6 +21,8 @@ import type { Doctor, Especialidad } from "../Tipos/dominio";
 import { getEspecialidades, crearEspecialidad } from "../Servicios/especialidadesService";
 import { getDoctores, crearDoctor } from "../Servicios/doctoresService";
 import { crearAgenda } from "../Servicios/agendaService";
+import { crearObraSocial } from "../Servicios/obraSocialService";
+import { crearMotivoCancelacion } from "../Servicios/motivoCancelacionService";
 
 const DIAS_SEMANA = [
   { value: 0, label: "Domingo" },
@@ -54,18 +56,22 @@ export default function AdminCargaDatos() {
             Cargar datos
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Alta de especialidades, doctores y agendas.
+            Alta de especialidades, doctores, agendas, obras sociales y motivos de cancelación.
           </Typography>
         </Box>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="fullWidth" sx={{ mt: 2 }}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" sx={{ mt: 2 }}>
           <Tab label="Especialidad" />
           <Tab label="Doctor" />
           <Tab label="Agenda" />
+          <Tab label="Obra social" />
+          <Tab label="Motivo de cancelación" />
         </Tabs>
         <Box sx={{ p: 3 }}>
           {tab === 0 && <FormEspecialidad onCreada={cargarListas} />}
           {tab === 1 && <FormDoctor especialidades={especialidades} onCreado={cargarListas} />}
           {tab === 2 && <FormAgenda doctores={doctores} onCreada={cargarListas} />}
+          {tab === 3 && <FormObraSocial />}
+          {tab === 4 && <FormMotivoCancelacion />}
         </Box>
       </Paper>
     </Container>
@@ -363,6 +369,110 @@ function FormAgenda({ doctores, onCreada }: { doctores: Doctor[]; onCreada: () =
       />
       <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={guardando}>
         {guardando ? <CircularProgress size={24} color="inherit" /> : "Crear agenda"}
+      </Button>
+    </Box>
+  );
+}
+
+function FormObraSocial() {
+  const [nombre, setNombre] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setOk(false);
+    if (!nombre.trim()) {
+      setError("Completá el nombre.");
+      return;
+    }
+    setGuardando(true);
+    try {
+      await crearObraSocial({ nombre: nombre.trim() });
+      setNombre("");
+      setOk(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo crear la obra social.");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <Box component="form" onSubmit={handleSubmit} noValidate>
+      {ok && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          Obra social creada.
+        </Alert>
+      )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      <TextField
+        fullWidth
+        margin="normal"
+        label="Nombre"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+      />
+      <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={guardando}>
+        {guardando ? <CircularProgress size={24} color="inherit" /> : "Crear obra social"}
+      </Button>
+    </Box>
+  );
+}
+
+function FormMotivoCancelacion() {
+  const [descripcion, setDescripcion] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setOk(false);
+    if (!descripcion.trim()) {
+      setError("Completá la descripción.");
+      return;
+    }
+    setGuardando(true);
+    try {
+      await crearMotivoCancelacion({ descripcion: descripcion.trim() });
+      setDescripcion("");
+      setOk(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo crear el motivo.");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <Box component="form" onSubmit={handleSubmit} noValidate>
+      {ok && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          Motivo de cancelación creado.
+        </Alert>
+      )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      <TextField
+        fullWidth
+        margin="normal"
+        label="Descripción"
+        value={descripcion}
+        onChange={(e) => setDescripcion(e.target.value)}
+      />
+      <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={guardando}>
+        {guardando ? <CircularProgress size={24} color="inherit" /> : "Crear motivo"}
       </Button>
     </Box>
   );

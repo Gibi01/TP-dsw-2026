@@ -11,6 +11,7 @@ import {
   Stack,
   CircularProgress,
   Alert,
+  MenuItem,
   TextField,
   Button,
   Chip,
@@ -24,10 +25,16 @@ import {
   Avatar,
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
-import type { SlotEspecialidad } from "../Tipos/dominio";
-import { getDisponibilidadEspecialidad, reservarTurno } from "../Servicios/turnosService";
+import type { ObraSocial, SlotEspecialidad } from "../Tipos/dominio";
+import {
+  getDisponibilidadEspecialidad,
+  getDisponibilidadMesEspecialidad,
+  reservarTurno,
+} from "../Servicios/turnosService";
+import { getObrasSociales } from "../Servicios/obraSocialService";
 import { useAuth } from "../Contextos/AuthContext";
 import { formatearHora, formatearFechaHora } from "../Servicios/formatoFechaHora";
+import CalendarioTurnos from "../Componentes/CalendarioTurnos";
 
 function hoyISO(): string {
   const hoy = new Date();
@@ -43,9 +50,14 @@ export default function EspecialidadTurnos() {
   const { estaAutenticado } = useAuth();
 
   const [fecha, setFecha] = useState(hoyISO());
+  const [fechasConTurnos, setFechasConTurnos] = useState<Set<string>>(new Set());
   const [slots, setSlots] = useState<SlotEspecialidad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [obrasSociales, setObrasSociales] = useState<ObraSocial[]>([]);
+  const [obraSocialId, setObraSocialId] = useState<number | "sin-obra-social" | "">("");
+  const [cargandoObrasSociales, setCargandoObrasSociales] = useState(false);
 
   const [horarioElegido, setHorarioElegido] = useState<string | null>(null);
   const [doctorElegido, setDoctorElegido] = useState<SlotEspecialidad["doctor"] | null>(null);
@@ -63,6 +75,21 @@ export default function EspecialidadTurnos() {
       )
       .finally(() => setLoading(false));
   }, [idEspecialidad, fecha]);
+
+  useEffect(() => {
+    setCargandoObrasSociales(true);
+    getObrasSociales()
+      .then(setObrasSociales)
+      .catch(() => setObrasSociales([]))
+      .finally(() => setCargandoObrasSociales(false));
+  }, []);
+
+  const cargarMesDisponible = (anio: number, mes: number) => {
+    if (!idEspecialidad) return;
+    getDisponibilidadMesEspecialidad(idEspecialidad, anio, mes)
+      .then((fechas) => setFechasConTurnos(new Set(fechas)))
+      .catch(() => {});
+  };
 
   // agrupo por horario porque puede haber mas de un doctor en el mismo momento
   const horarios = useMemo(() => {
@@ -92,14 +119,19 @@ export default function EspecialidadTurnos() {
     }
     setDoctorElegido(doctor);
     setErrorReserva(null);
+    setObraSocialId("");
   };
 
   const confirmarReserva = async () => {
-    if (!horarioElegido || !doctorElegido) return;
+    if (!horarioElegido || !doctorElegido || obraSocialId === "") return;
     setReservando(true);
     setErrorReserva(null);
     try {
-      await reservarTurno(doctorElegido.matricula, horarioElegido);
+      await reservarTurno(
+        doctorElegido.matricula,
+        horarioElegido,
+        obraSocialId === "sin-obra-social" ? null : obraSocialId
+      );
       navigate("/mis-turnos");
     } catch (err) {
       setErrorReserva(err instanceof Error ? err.message : "No se pudo reservar el turno.");
@@ -118,12 +150,11 @@ export default function EspecialidadTurnos() {
           Elegí un horario y después con qué doctor querés atenderte.
         </Typography>
 
-        <TextField
-          type="date"
-          label="Fecha"
-          value={fecha}
-          onChange={(e) => setFecha(e.target.value < hoyISO() ? hoyISO() : e.target.value)}
-          slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: hoyISO() } }}
+        <CalendarioTurnos
+          fecha={fecha}
+          onCambiarFecha={setFecha}
+          fechasConTurnos={fechasConTurnos}
+          onCambiarMes={cargarMesDisponible}
         />
       </Paper>
 
@@ -204,15 +235,44 @@ export default function EspecialidadTurnos() {
             </Alert>
           )}
           {doctorElegido && horarioElegido && (
-            <Typography>
+            <Typography sx={{ mb: 2 }}>
               Turno con Dr./Dra. {doctorElegido.nombre} {doctorElegido.apellido} el{" "}
               {formatearFechaHora(horarioElegido)}.
             </Typography>
           )}
+          {cargandoObrasSociales && <CircularProgress size={24} />}
+          {!cargandoObrasSociales && (
+            <TextField
+              select
+              fullWidth
+              label="Obra social a usar en este turno"
+              value={obraSocialId}
+              onChange={(e) => {
+                const valor = e.target.value;
+                setObraSocialId(
+                  valor === "" || valor === "sin-obra-social" ? valor : Number(valor)
+                );
+              }}
+            >
+              <MenuItem value="" disabled>
+                Elegí una opción
+              </MenuItem>
+              <MenuItem value="sin-obra-social">Sin obra social</MenuItem>
+              {obrasSociales.map((os) => (
+                <MenuItem key={os.id} value={os.id}>
+                  {os.nombre}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDoctorElegido(null)}>Cancelar</Button>
-          <Button variant="contained" onClick={confirmarReserva} disabled={reservando}>
+          <Button
+            variant="contained"
+            onClick={confirmarReserva}
+            disabled={reservando || cargandoObrasSociales || obraSocialId === ""}
+          >
             {reservando ? <CircularProgress size={20} color="inherit" /> : "Confirmar"}
           </Button>
         </DialogActions>

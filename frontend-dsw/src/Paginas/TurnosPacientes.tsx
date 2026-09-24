@@ -15,6 +15,7 @@ import {
   DialogActions,
   Alert,
   CircularProgress,
+  Tooltip,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -26,6 +27,14 @@ import {
   marcarTurnoNoAsistido,
 } from "../Servicios/turnosService";
 import { formatearFechaHora } from "../Servicios/formatoFechaHora";
+
+const MINUTOS_CORTESIA_ASISTENCIA = 15;
+
+function puedeMarcarAsistencia(fechaHoraTurno: string): boolean {
+  const inicio = new Date(fechaHoraTurno).getTime();
+  const ahora = Date.now();
+  return ahora >= inicio && ahora <= inicio + MINUTOS_CORTESIA_ASISTENCIA * 60 * 1000;
+}
 
 export default function TurnosPacientes() {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
@@ -144,15 +153,26 @@ function ListaTurnosPendientes({
                 )}
               </Box>
               <Stack direction="row" spacing={1}>
-                <Button
-                  size="small"
-                  color="success"
-                  variant="outlined"
-                  startIcon={<CheckCircleIcon />}
-                  onClick={() => setAccion({ turno, tipo: "asistio" })}
+                <Tooltip
+                  title={
+                    puedeMarcarAsistencia(turno.fechaHoraTurno)
+                      ? ""
+                      : "La asistencia se puede marcar desde el horario del turno y durante los 15 minutos posteriores."
+                  }
                 >
-                  Asistió
-                </Button>
+                  <span>
+                    <Button
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                      startIcon={<CheckCircleIcon />}
+                      onClick={() => setAccion({ turno, tipo: "asistio" })}
+                      disabled={!puedeMarcarAsistencia(turno.fechaHoraTurno)}
+                    >
+                      Asistió
+                    </Button>
+                  </span>
+                </Tooltip>
                 <Button
                   size="small"
                   color="warning"

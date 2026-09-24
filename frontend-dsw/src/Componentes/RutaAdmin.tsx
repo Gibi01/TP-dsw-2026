@@ -15,9 +15,9 @@ export default function RutaAdmin({ children }: Props) {
   if (!estaAutenticado) {
     return (
       <Navigate
-        to="/login"
+        to="/registro"
         replace
-        state={{ from: location.pathname, mensaje: "Iniciá sesión para continuar." }}
+        state={{ from: location.pathname, mensaje: "Creá una cuenta para continuar." }}
       />
     );
   }

@@ -8,13 +8,15 @@ import { config } from './shared/config.js';
 import { manejadorErrores, rutaNoEncontrada } from './shared/manejadorErrores.js';
 
 import authRouter from './recursos/auth/auth.rutas.js';
-import sanatorioRouter from './recursos/sanatorio/sanatorio.rutas.js';
 import usuarioRouter from './recursos/usuarios/usuario.rutas.js';
 import doctorRouter from './recursos/doctor/doctor.rutas.js';
 import especialidadRouter from './recursos/especialidad/especialidad.rutas.js';
 import turnoRouter from './recursos/turno/turno.rutas.js';
 import agendaRouter from './recursos/agenda/agenda.rutas.js';
+import obraSocialRouter from './recursos/obraSocial/obraSocial.rutas.js';
+import motivoCancelacionRouter from './recursos/motivoCancelacion/motivoCancelacion.rutas.js';
 import { iniciarTareaNoAsistidos } from './recursos/turno/turno.controlador.js';
+import { iniciarNotificacionesTurnos } from './recursos/turno/notificacionTurno.servicio.js';
 
 export const app = express();
 app.use(cors());
@@ -28,19 +30,21 @@ app.use((req, res, next) => {
 app.use(morgan('dev'));
 
 app.use('/api/auth', authRouter);
-app.use('/api/sanatorios', sanatorioRouter);
 app.use('/api/usuarios', usuarioRouter);
 app.use('/api/doctores', doctorRouter);
 app.use('/api/especialidades', especialidadRouter);
 app.use('/api/turnos', turnoRouter);
 app.use('/api/agendas', agendaRouter);
+app.use('/api/obras-sociales', obraSocialRouter);
+app.use('/api/motivos-cancelacion', motivoCancelacionRouter);
 
 app.use(rutaNoEncontrada);
 app.use(manejadorErrores);
 
 if (process.env.NODE_ENV !== 'test') {
   await syncSchema(); // never in production
-  iniciarTareaNoAsistidos(); // cada 15min pasa los turnos vencidos de pendiente a no_asistido
+  iniciarTareaNoAsistidos(); // cada 5min pasa los turnos vencidos de pendiente a no_asistido
+  iniciarNotificacionesTurnos();
 
   app.listen(config.port, () => {
     console.log(`servidor escuchando en el puerto ${config.port}`);

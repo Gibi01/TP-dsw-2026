@@ -6,6 +6,16 @@ export interface Especialidad {
   descripcionEsp: string;
 }
 
+export interface ObraSocial {
+  id: number;
+  nombre: string;
+}
+
+export interface MotivoCancelacion {
+  id: number;
+  descripcion: string;
+}
+
 // el doctor tambien es un usuario, nombre/apellido/email/foto estan ahi, no se duplican
 // "activo" es la baja logica, si esta en false no se lo ofrece nunca como opcion
 export interface Doctor {
@@ -49,7 +59,6 @@ export interface PerfilUsuario {
   rol: string;
   dni?: string;
   foto?: string | null;
-  obraSocial?: string;
   direccion?: string;
   telefonoCelular?: string;
 }
@@ -62,11 +71,13 @@ export interface Turno {
   id: number;
   usuarioId: number;
   doctor: Doctor;
+  obraSocial: ObraSocial | null;
   fechaHoraEmision: string;
   fechaHoraTurno: string;
   estado: EstadoTurno;
   fechaHoraCancelacion: string | null;
   motivoCancelacion: string | null;
+  motivoCancelacionPreestablecido: MotivoCancelacion | null;
 }
 
 // datos del paciente que vienen adentro del turno, como los ve el doctor en "Mis turnos"

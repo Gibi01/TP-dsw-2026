@@ -3,9 +3,10 @@ import {
   sanitizeTurnoInput,
   validarTurnoCreacion,
   sanitizeCancelacionInput,
-  validarCancelacionInput,
   disponibilidadDoctor,
   disponibilidadEspecialidad,
+  disponibilidadMesDoctor,
+  disponibilidadMesEspecialidad,
   add,
   misTurnos,
   turnosQueAtiendo,
@@ -21,11 +22,13 @@ export const turnoRouter = Router();
 // la disponibilidad se puede ver sin estar logueado, el login hace falta recien para reservar
 turnoRouter.get('/disponibilidad', disponibilidadDoctor);
 turnoRouter.get('/disponibilidad-especialidad', disponibilidadEspecialidad);
+turnoRouter.get('/disponibilidad-mes', disponibilidadMesDoctor);
+turnoRouter.get('/disponibilidad-mes-especialidad', disponibilidadMesEspecialidad);
 
 turnoRouter.get('/mios', verificarToken, misTurnos);
 turnoRouter.get('/atiendo', verificarToken, autorizarRoles('doctor'), turnosQueAtiendo);
 turnoRouter.post('/', verificarToken, sanitizeTurnoInput, validarTurnoCreacion, add);
-turnoRouter.patch('/:id/cancelar', verificarToken, sanitizeCancelacionInput, validarCancelacionInput, cancelar);
+turnoRouter.patch('/:id/cancelar', verificarToken, sanitizeCancelacionInput, cancelar);
 turnoRouter.patch('/:id/asistio', verificarToken, autorizarRoles('doctor'), marcarAsistido);
 turnoRouter.patch('/:id/no-asistio', verificarToken, autorizarRoles('doctor'), marcarNoAsistido);
 turnoRouter.get('/:id', verificarToken, findOne);

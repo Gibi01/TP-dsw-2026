@@ -57,6 +57,15 @@ function construirPaginas(usuario: UsuarioSesion | null): PaginaNav[] {
     ];
   }
 
+  if (usuario?.rol === "admin") {
+    return [
+      ...base,
+      { text: "Mis turnos", path: "/mis-turnos" },
+      { text: "Cargar datos", path: "/admin/carga" },
+      { text: "Modificar datos", path: "/admin/modificar" },
+    ];
+  }
+
   return [...base, { text: "Mis turnos", path: "/mis-turnos" }];
 }
 
@@ -268,16 +277,6 @@ function ResponsiveAppBar() {
                     <MenuItem key="mi-perfil" onClick={() => handleNavigateTo('/perfil')}>
                       <Typography sx={{ textAlign: 'center' }}>Mi Perfil</Typography>
                     </MenuItem>,
-                    ...(usuario?.rol === 'admin'
-                      ? [
-                          <MenuItem key="cargar-datos" onClick={() => handleNavigateTo('/admin/carga')}>
-                            <Typography sx={{ textAlign: 'center' }}>Cargar datos</Typography>
-                          </MenuItem>,
-                          <MenuItem key="modificar-datos" onClick={() => handleNavigateTo('/admin/modificar')}>
-                            <Typography sx={{ textAlign: 'center' }}>Modificar datos</Typography>
-                          </MenuItem>,
-                        ]
-                      : []),
                     <MenuItem key="cerrar-sesion" onClick={handleCerrarSesion}>
                       <Typography sx={{ textAlign: 'center' }}>Cerrar sesión</Typography>
                     </MenuItem>,

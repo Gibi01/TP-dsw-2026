@@ -21,4 +21,8 @@ export const config = {
     secret: requireEnv('JWT_SECRET'),
     expiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
   },
+  resend: {
+    apiKey: process.env.RESEND_API_KEY,
+    fromEmail: process.env.RESEND_FROM_EMAIL,
+  },
 };

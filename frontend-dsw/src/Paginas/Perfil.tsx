@@ -45,7 +45,9 @@ export default function Perfil() {
   useEffect(() => {
     if (!usuario) return;
     obtenerPerfil(usuario.id)
-      .then(setPerfil)
+      .then((datos) => {
+        setPerfil(datos);
+      })
       .catch((err) =>
         setError(err instanceof Error ? err.message : "No se pudo cargar tu perfil.")
       )
@@ -118,8 +120,8 @@ export default function Perfil() {
     try {
       const actualizado = await actualizarPerfil(usuario.id, {
         email: perfil.email,
+        dni: perfil.dni,
         foto: perfil.foto ?? null,
-        obraSocial: perfil.obraSocial,
         direccion: perfil.direccion,
         telefonoCelular: perfil.telefonoCelular,
       });
@@ -211,20 +213,12 @@ export default function Perfil() {
             margin="normal"
             label="DNI"
             value={perfil.dni ?? ""}
-            disabled
-            helperText="El DNI no se puede modificar."
+            onChange={handleChange("dni")}
           />
           <TextField
             fullWidth
             margin="normal"
-            label="Obra social"
-            value={perfil.obraSocial ?? ""}
-            onChange={handleChange("obraSocial")}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Dirección"
+            label="Domicilio"
             value={perfil.direccion ?? ""}
             onChange={handleChange("direccion")}
           />

@@ -1,6 +1,11 @@
 import DoctorCard from "./tarjetaMedico";
+import type { DoctorCardData } from "./tarjetaMedico";
 
-export default function DoctorList({doctores}){
+interface DoctorListProps {
+    doctores: DoctorCardData[];
+}
+
+export default function DoctorList({ doctores }: DoctorListProps){
 
     return(
 
@@ -8,7 +13,7 @@ export default function DoctorList({doctores}){
 
             {
 
-                doctores.map(d=>(
+                doctores.map((d) => (
 
                     <DoctorCard
 

@@ -1,23 +1,28 @@
 import { Request, Response, NextFunction } from 'express';
+import { LockMode } from '@mikro-orm/core';
 import { Turno } from './turno.entidad.js';
 import { Doctor } from '../doctor/doctor.entidad.js';
 import { resolverDoctorDelUsuario } from '../doctor/doctor.controlador.js';
 import { Especialidad } from '../especialidad/especialidad.entidad.js';
 import { Usuario } from '../usuarios/usuario.entidad.js';
 import { Agenda } from '../agenda/agenda.entidad.js';
+import { ObraSocial } from '../obraSocial/obraSocial.entidad.js';
+import { MotivoCancelacion } from '../motivoCancelacion/motivoCancelacion.entidad.js';
 import { orm } from '../../shared/orm.js';
 import { limpiarInput, validarCamposRequeridos, parsearIdNumerico } from '../../shared/validacion.js';
 import { BadRequestError, ForbiddenError, ConflictError, NotFoundError } from '../../shared/errores.js';
+import { encolarNotificacion } from './notificacionTurno.servicio.js';
 
 const em = orm.em;
 
-const HORAS_LIMITE_NO_ASISTIDO = 12;
+const MINUTOS_CORTESIA_ASISTENCIA = 15;
 
-const CAMPOS_CREACION = ['doctorId', 'fechaHoraTurno'];
+const CAMPOS_CREACION = ['doctorId', 'fechaHoraTurno', 'obraSocialId'];
 const CAMPOS_REQUERIDOS_CREACION = ['doctorId', 'fechaHoraTurno'];
 
-const CAMPOS_CANCELACION = ['motivoCancelacion'];
-const CAMPOS_REQUERIDOS_CANCELACION = ['motivoCancelacion'];
+// cancelar un turno no exige nada: tanto el texto libre como el motivo preestablecido
+// (motivoCancelacionPreestablecidoId) son opcionales
+const CAMPOS_CANCELACION = ['motivoCancelacion', 'motivoCancelacionPreestablecidoId'];
 
 function sanitizeTurnoInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = limpiarInput(req.body, CAMPOS_CREACION);
@@ -31,11 +36,6 @@ function validarTurnoCreacion(req: Request, res: Response, next: NextFunction) {
 
 function sanitizeCancelacionInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = limpiarInput(req.body, CAMPOS_CANCELACION);
-  next();
-}
-
-function validarCancelacionInput(req: Request, res: Response, next: NextFunction) {
-  validarCamposRequeridos(req.body.sanitizedInput, CAMPOS_REQUERIDOS_CANCELACION);
   next();
 }
 
@@ -99,11 +99,15 @@ function serializarTurno(turno: Turno) {
     id: turno.id,
     usuarioId: typeof turno.usuario === 'object' ? turno.usuario.id : turno.usuario,
     doctor: doctorPublico(turno.doctor),
+    obraSocial: turno.obraSocial ? { id: turno.obraSocial.id, nombre: turno.obraSocial.nombre } : null,
     fechaHoraEmision: turno.fechaHoraEmision,
     fechaHoraTurno: turno.fechaHoraTurno,
     estado: turno.estado,
     fechaHoraCancelacion: turno.fechaHoraCancelacion ?? null,
     motivoCancelacion: turno.motivoCancelacion ?? null,
+    motivoCancelacionPreestablecido: turno.motivoCancelacionPreestablecido
+      ? { id: turno.motivoCancelacionPreestablecido.id, descripcion: turno.motivoCancelacionPreestablecido.descripcion }
+      : null,
   };
 }
 
@@ -115,22 +119,32 @@ function serializarTurnoParaDoctor(turno: Turno) {
   };
 }
 
-// pasa a no_asistido automaticamente cualquier turno pendiente que ya paso hace mas de 12hs
+// pasa a no_asistido automaticamente cualquier turno pendiente que ya supero los 15 minutos
+// de cortesia desde su horario
 // (ni se presento ni lo cancelo). se corre antes de cualquier lectura de turnos, y ademas
 // hay un setInterval aparte (iniciarTareaNoAsistidos) para que se actualice aunque nadie consulte
 async function marcarNoAsistidosVencidos(): Promise<void> {
-  const limite = new Date(Date.now() - HORAS_LIMITE_NO_ASISTIDO * 60 * 60 * 1000);
-  await em.nativeUpdate(
-    Turno,
-    { estado: 'pendiente', fechaHoraTurno: { $lt: limite } },
-    { estado: 'no_asistido' }
-  );
+  const limite = new Date(Date.now() - MINUTOS_CORTESIA_ASISTENCIA * 60 * 1000);
+  const turnos = await orm.em.fork().find(Turno, {
+    estado: 'pendiente', fechaHoraTurno: { $lt: limite },
+  }, { fields: ['id'], limit: 100 });
+  for (const turno of turnos) {
+    await orm.em.fork().transactional(async (tx) => {
+      const actual = await tx.findOne(Turno, { id: turno.id }, {
+        populate: ['usuario', 'doctor', 'doctor.usuario'],
+        lockMode: LockMode.PESSIMISTIC_WRITE,
+      });
+      if (!actual || actual.estado !== 'pendiente' || actual.fechaHoraTurno >= limite) return;
+      actual.estado = 'no_asistido';
+      encolarNotificacion(tx, actual, 'no_asistido');
+    });
+  }
 }
 
 function iniciarTareaNoAsistidos(): void {
   setInterval(() => {
     marcarNoAsistidosVencidos().catch((err) => console.error('error marcando no-asistidos', err));
-  }, 15 * 60 * 1000);
+  }, 5 * 60 * 1000);
 }
 
 // genera los horarios del doctor para una fecha en base a su Agenda real (los bloques
@@ -213,11 +227,83 @@ async function disponibilidadEspecialidad(req: Request, res: Response) {
   res.status(200).json({ message: 'turnos disponibles para la especialidad', data: disponibles });
 }
 
+function diasDelMes(anio: number, mes: number): string[] {
+  const cantidadDias = new Date(anio, mes, 0).getDate();
+  const dias: string[] = [];
+  for (let dia = 1; dia <= cantidadDias; dia++) {
+    dias.push(`${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`);
+  }
+  return dias;
+}
+
+function validarAnioMes(anio: unknown, mes: unknown): { anio: number; mes: number } {
+  const anioNum = Number(anio);
+  const mesNum = Number(mes);
+  if (!Number.isInteger(anioNum) || !Number.isInteger(mesNum) || mesNum < 1 || mesNum > 12) {
+    throw new BadRequestError('anio y mes son obligatorios (mes entre 1 y 12)');
+  }
+  return { anio: anioNum, mes: mesNum };
+}
+
+// GET /api/turnos/disponibilidad-mes?doctorId=&anio=&mes=
+// para pintar el calendario: que dias del mes tienen al menos un horario libre con ese doctor
+async function disponibilidadMesDoctor(req: Request, res: Response) {
+  const matricula = parsearIdNumerico(req.query.doctorId as string);
+  const { anio, mes } = validarAnioMes(req.query.anio, req.query.mes);
+  const doctor = await em.findOneOrFail(Doctor, { matricula });
+  if (!doctor.activo) {
+    throw new NotFoundError('Doctor no encontrado');
+  }
+
+  const fechasConDisponibilidad: string[] = [];
+  for (const fecha of diasDelMes(anio, mes)) {
+    const [ocupados, slotsBase] = await Promise.all([
+      slotsOcupados(doctor, fecha),
+      generarSlotsDelDia(doctor, fecha),
+    ]);
+    if (slotsBase.some((slot) => !ocupados.has(slot.getTime()))) {
+      fechasConDisponibilidad.push(fecha);
+    }
+  }
+
+  res.status(200).json({ message: 'fechas con disponibilidad', data: fechasConDisponibilidad });
+}
+
+// GET /api/turnos/disponibilidad-mes-especialidad?especialidadId=&anio=&mes=
+// mismo criterio que arriba pero mirando todos los doctores activos de la especialidad
+async function disponibilidadMesEspecialidad(req: Request, res: Response) {
+  const idEspecialidad = parsearIdNumerico(req.query.especialidadId as string);
+  const { anio, mes } = validarAnioMes(req.query.anio, req.query.mes);
+  const especialidad = await em.findOneOrFail(Especialidad, { idEspecialidad }, { populate: ['doctores'] });
+  const doctoresActivos = especialidad.doctores.getItems().filter((d) => d.activo);
+
+  const fechasConDisponibilidad: string[] = [];
+  for (const fecha of diasDelMes(anio, mes)) {
+    let hayDisponibilidad = false;
+    for (const doctor of doctoresActivos) {
+      const [ocupados, slotsBase] = await Promise.all([
+        slotsOcupados(doctor, fecha),
+        generarSlotsDelDia(doctor, fecha),
+      ]);
+      if (slotsBase.some((slot) => !ocupados.has(slot.getTime()))) {
+        hayDisponibilidad = true;
+        break;
+      }
+    }
+    if (hayDisponibilidad) {
+      fechasConDisponibilidad.push(fecha);
+    }
+  }
+
+  res.status(200).json({ message: 'fechas con disponibilidad', data: fechasConDisponibilidad });
+}
+
 // POST /api/turnos, el usuario logueado reserva un turno con un doctor en un horario puntual
 async function add(req: Request, res: Response) {
-  const { doctorId, fechaHoraTurno } = req.body.sanitizedInput as {
+  const { doctorId, fechaHoraTurno, obraSocialId } = req.body.sanitizedInput as {
     doctorId: unknown;
     fechaHoraTurno: unknown;
+    obraSocialId: unknown;
   };
 
   const matricula = parsearIdNumerico(String(doctorId));
@@ -233,6 +319,9 @@ async function add(req: Request, res: Response) {
   if (!doctor.activo) {
     throw new NotFoundError('Doctor no encontrado');
   }
+  if (doctor.usuario.id === req.usuario!.id) {
+    throw new ForbiddenError('No podés reservar un turno con vos mismo');
+  }
 
   const slotsDelDia = await generarSlotsDelDia(doctor, formatoFecha(fecha));
   const esHorarioDeAgenda = slotsDelDia.some((slot) => slot.getTime() === fecha.getTime());
@@ -245,10 +334,16 @@ async function add(req: Request, res: Response) {
     throw new ConflictError('Ese horario ya no está disponible');
   }
 
-  const usuario = em.getReference(Usuario, req.usuario!.id);
+  const usuario = await em.findOneOrFail(Usuario, { id: req.usuario!.id });
+  const obraSocial =
+    obraSocialId === undefined || obraSocialId === null
+      ? undefined
+      : await em.findOneOrFail(ObraSocial, { id: parsearIdNumerico(String(obraSocialId)) });
+
   const turno = em.create(Turno, {
     usuario,
     doctor,
+    obraSocial,
     fechaHoraEmision: new Date(),
     fechaHoraTurno: fecha,
     estado: 'pendiente',
@@ -277,7 +372,7 @@ async function misTurnos(req: Request, res: Response) {
   }
 
   const turnos = await em.find(Turno, filtro, {
-    populate: ['doctor', 'doctor.usuario', 'doctor.especialidades'],
+    populate: ['doctor', 'doctor.usuario', 'doctor.especialidades', 'obraSocial', 'motivoCancelacionPreestablecido'],
     orderBy: { fechaHoraTurno: 'desc' },
   });
 
@@ -295,7 +390,7 @@ async function turnosQueAtiendo(req: Request, res: Response) {
   }
 
   const turnos = await em.find(Turno, filtro, {
-    populate: ['doctor', 'doctor.usuario', 'doctor.especialidades', 'usuario'],
+    populate: ['doctor', 'doctor.usuario', 'doctor.especialidades', 'usuario', 'obraSocial', 'motivoCancelacionPreestablecido'],
     orderBy: { fechaHoraTurno: 'asc' },
   });
 
@@ -307,7 +402,7 @@ async function findOne(req: Request, res: Response) {
   await marcarNoAsistidosVencidos();
   // no populateamos "usuario", con la referencia (el id) alcanza para validar el dueño
   // y asi no se serializa el usuario completo con la contraseña hasheada y todo
-  const turno = await em.findOneOrFail(Turno, { id }, { populate: ['doctor', 'doctor.usuario', 'doctor.especialidades'] });
+  const turno = await em.findOneOrFail(Turno, { id }, { populate: ['doctor', 'doctor.usuario', 'doctor.especialidades', 'obraSocial', 'motivoCancelacionPreestablecido'] });
 
   const esDuenio = turno.usuario.id === req.usuario?.id;
   const esDoctorDelTurno =
@@ -319,11 +414,12 @@ async function findOne(req: Request, res: Response) {
   res.status(200).json({ message: 'turno encontrado', data: serializarTurno(turno) });
 }
 
-// PATCH /api/turnos/:id/cancelar, requiere motivoCancelacion en el body
+// PATCH /api/turnos/:id/cancelar, tanto el texto libre como el motivo preestablecido
+// son opcionales
 async function cancelar(req: Request, res: Response) {
   const id = parsearIdNumerico(req.params.id);
-  // igual que en findOne, no populateamos "usuario" para no filtrar la contraseña hasheada
-  const turno = await em.findOneOrFail(Turno, { id }, { populate: ['doctor', 'doctor.usuario', 'doctor.especialidades'] });
+  // El usuario se carga para preparar el correo; la respuesta sigue usando serializarTurno.
+  const turno = await em.findOneOrFail(Turno, { id }, { populate: ['usuario', 'doctor', 'doctor.usuario', 'doctor.especialidades', 'obraSocial', 'motivoCancelacionPreestablecido'] });
 
   if (req.usuario?.rol !== 'admin' && turno.usuario.id !== req.usuario?.id) {
     throw new ForbiddenError('No podés cancelar un turno que no es tuyo');
@@ -332,9 +428,24 @@ async function cancelar(req: Request, res: Response) {
     throw new ConflictError('Solo se puede cancelar un turno pendiente');
   }
 
+  const { motivoCancelacion, motivoCancelacionPreestablecidoId } = req.body.sanitizedInput as {
+    motivoCancelacion?: string;
+    motivoCancelacionPreestablecidoId?: unknown;
+  };
+
   turno.estado = 'cancelado';
   turno.fechaHoraCancelacion = new Date();
-  turno.motivoCancelacion = req.body.sanitizedInput.motivoCancelacion as string;
+  if (motivoCancelacion) {
+    turno.motivoCancelacion = motivoCancelacion;
+  }
+  if (motivoCancelacionPreestablecidoId !== undefined) {
+    const idMotivo = parsearIdNumerico(String(motivoCancelacionPreestablecidoId));
+    turno.motivoCancelacionPreestablecido = await em.findOneOrFail(MotivoCancelacion, { id: idMotivo });
+  }
+
+  if (req.usuario?.id === turno.usuario.id) {
+    encolarNotificacion(em, turno, 'cancelado');
+  }
 
   await em.flush();
   res.status(200).json({ message: 'turno cancelado', data: serializarTurno(turno) });
@@ -357,7 +468,18 @@ async function marcarAsistido(req: Request, res: Response) {
     throw new ConflictError('Solo se puede marcar como asistido un turno pendiente');
   }
 
+  const ahora = new Date();
+  const limiteAsistencia = new Date(
+    turno.fechaHoraTurno.getTime() + MINUTOS_CORTESIA_ASISTENCIA * 60 * 1000
+  );
+  if (ahora < turno.fechaHoraTurno || ahora > limiteAsistencia) {
+    throw new ConflictError(
+      'Solo se puede marcar asistencia desde el horario del turno y durante los 15 minutos posteriores'
+    );
+  }
+
   turno.estado = 'asistido';
+  encolarNotificacion(em, turno, 'asistido');
   await em.flush();
   res.status(200).json({ message: 'turno marcado como asistido', data: serializarTurnoParaDoctor(turno) });
 }
@@ -373,6 +495,7 @@ async function marcarNoAsistido(req: Request, res: Response) {
   }
 
   turno.estado = 'no_asistido';
+  encolarNotificacion(em, turno, 'no_asistido');
   await em.flush();
   res.status(200).json({ message: 'turno marcado como no asistido', data: serializarTurnoParaDoctor(turno) });
 }
@@ -381,9 +504,10 @@ export {
   sanitizeTurnoInput,
   validarTurnoCreacion,
   sanitizeCancelacionInput,
-  validarCancelacionInput,
   disponibilidadDoctor,
   disponibilidadEspecialidad,
+  disponibilidadMesDoctor,
+  disponibilidadMesEspecialidad,
   add,
   misTurnos,
   turnosQueAtiendo,

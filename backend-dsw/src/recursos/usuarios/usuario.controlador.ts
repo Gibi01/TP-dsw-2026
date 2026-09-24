@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { Usuario } from './usuario.entidad.js';
 import { orm } from '../../shared/orm.js';
 import { limpiarInput, validarCamposRequeridos, parsearIdNumerico } from '../../shared/validacion.js';
-import { ConflictError, ForbiddenError } from '../../shared/errores.js';
+import { BadRequestError, ConflictError, ForbiddenError } from '../../shared/errores.js';
 
 const em = orm.em;
 
@@ -15,7 +15,6 @@ const CAMPOS = [
   'rol',
   'dni',
   'foto',
-  'obraSocial',
   'direccion',
   'telefonoCelular',
 ];
@@ -55,14 +54,17 @@ async function findOne(req: Request, res: Response) {
 }
 
 async function add(req: Request, res: Response) {
-  const email = req.body.sanitizedInput.email as string;
+  const datosUsuario = req.body.sanitizedInput as Record<string, unknown>;
+
+  const email = datosUsuario.email as string;
   const existente = await em.findOne(Usuario, { email });
   if (existente) {
     throw new ConflictError('Ya existe un usuario con ese email');
   }
 
-  const passwordHasheada = await bcrypt.hash(req.body.sanitizedInput.password as string, SALT_ROUNDS);
-  const usuario = em.create(Usuario, { ...req.body.sanitizedInput, password: passwordHasheada });
+  const passwordHasheada = await bcrypt.hash(datosUsuario.password as string, SALT_ROUNDS);
+  const usuario = em.create(Usuario, { ...datosUsuario, password: passwordHasheada } as any);
+
   await em.flush();
   res.status(201).json({ message: 'usuario Creado', data: ocultarPassword(usuario) });
 }
@@ -74,11 +76,7 @@ async function update(req: Request, res: Response) {
   }
 
   const usuarioToUpdate = await em.findOneOrFail(Usuario, { id });
-
-  const cambios: Record<string, unknown> = { ...req.body.sanitizedInput };
-
-  // el dni no se puede tocar una vez cargado, ni un admin desde este endpoint
-  delete cambios.dni;
+  const cambios = req.body.sanitizedInput as Record<string, unknown>;
 
   if (cambios.password) {
     cambios.password = await bcrypt.hash(cambios.password as string, SALT_ROUNDS);
@@ -96,6 +94,7 @@ async function update(req: Request, res: Response) {
   }
 
   em.assign(usuarioToUpdate, cambios);
+
   await em.flush();
   res.status(200).json({ message: 'usuario updated', data: ocultarPassword(usuarioToUpdate) });
 }

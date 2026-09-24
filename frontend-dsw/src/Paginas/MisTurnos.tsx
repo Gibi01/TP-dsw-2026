@@ -19,11 +19,15 @@ import {
   DialogActions,
   TextField,
   FormControlLabel,
+  FormLabel,
+  Radio,
+  RadioGroup,
   Switch,
 } from "@mui/material";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
-import type { EstadoTurno, Turno } from "../Tipos/dominio";
+import type { EstadoTurno, MotivoCancelacion, Turno } from "../Tipos/dominio";
 import { obtenerMisTurnos, cancelarTurno } from "../Servicios/turnosService";
+import { getMotivosCancelacion } from "../Servicios/motivoCancelacionService";
 import { formatearFechaHora } from "../Servicios/formatoFechaHora";
 
 const ETIQUETA_ESTADO: Record<EstadoTurno, string> = {
@@ -64,8 +68,16 @@ export default function MisTurnos() {
 
   const [turnoACancelar, setTurnoACancelar] = useState<Turno | null>(null);
   const [motivo, setMotivo] = useState("");
+  const [motivosCancelacion, setMotivosCancelacion] = useState<MotivoCancelacion[]>([]);
+  const [motivoPreestablecidoId, setMotivoPreestablecidoId] = useState<number | "">("");
   const [cancelando, setCancelando] = useState(false);
   const [errorCancelacion, setErrorCancelacion] = useState<string | null>(null);
+
+  useEffect(() => {
+    getMotivosCancelacion()
+      .then(setMotivosCancelacion)
+      .catch(() => {});
+  }, []);
 
   const cargarTurnos = () => {
     setLoading(true);
@@ -85,20 +97,22 @@ export default function MisTurnos() {
   const abrirCancelacion = (turno: Turno) => {
     setTurnoACancelar(turno);
     setMotivo("");
+    setMotivoPreestablecidoId("");
     setErrorCancelacion(null);
   };
 
+  // el motivo (tanto el texto libre como el de la lista) es opcional, se puede cancelar sin cargar nada
   const confirmarCancelacion = async () => {
     if (!turnoACancelar) return;
-    if (!motivo.trim()) {
-      setErrorCancelacion("Contanos el motivo de la cancelación.");
-      return;
-    }
 
     setCancelando(true);
     setErrorCancelacion(null);
     try {
-      await cancelarTurno(turnoACancelar.id, motivo.trim());
+      await cancelarTurno(
+        turnoACancelar.id,
+        motivo.trim(),
+        motivoPreestablecidoId === "" ? null : motivoPreestablecidoId
+      );
       setTurnoACancelar(null);
       cargarTurnos();
     } catch (err) {
@@ -159,6 +173,9 @@ export default function MisTurnos() {
                     <Typography variant="body2" color="text.secondary">
                       {formatearFechaHora(turno.fechaHoraTurno)}
                     </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      Obra social: {turno.obraSocial?.nombre ?? "Sin obra social"}
+                    </Typography>
                     <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap" }}>
                       {turno.doctor.especialidades?.map((esp) => (
                         <Chip
@@ -174,11 +191,15 @@ export default function MisTurnos() {
                   <Chip label={ETIQUETA_ESTADO[turno.estado]} color={COLOR_ESTADO[turno.estado]} />
                 </Stack>
 
-                {turno.estado === "cancelado" && turno.motivoCancelacion && (
-                  <Alert severity="warning" sx={{ mt: 2 }}>
-                    Motivo de cancelación: {turno.motivoCancelacion}
-                  </Alert>
-                )}
+                {turno.estado === "cancelado" &&
+                  (turno.motivoCancelacion || turno.motivoCancelacionPreestablecido) && (
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                      Motivo de cancelación:{" "}
+                      {[turno.motivoCancelacionPreestablecido?.descripcion, turno.motivoCancelacion]
+                        .filter(Boolean)
+                        .join(" — ")}
+                    </Alert>
+                  )}
 
                 {turno.estado === "pendiente" && (
                   <Button
@@ -209,15 +230,36 @@ export default function MisTurnos() {
               {errorCancelacion}
             </Alert>
           )}
+
+          {motivosCancelacion.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <FormLabel id="motivo-preestablecido-label">
+                Motivo (opcional, elegí como mucho uno)
+              </FormLabel>
+              <RadioGroup
+                aria-labelledby="motivo-preestablecido-label"
+                value={motivoPreestablecidoId}
+                onChange={(e) => setMotivoPreestablecidoId(Number(e.target.value))}
+              >
+                {motivosCancelacion.map((m) => (
+                  <FormControlLabel
+                    key={m.id}
+                    value={m.id}
+                    control={<Radio />}
+                    label={m.descripcion}
+                  />
+                ))}
+              </RadioGroup>
+            </Box>
+          )}
+
           <TextField
-            autoFocus
             fullWidth
             multiline
             minRows={3}
-            label="Motivo de la cancelación"
+            label="Otro motivo (opcional)"
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
-            sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>

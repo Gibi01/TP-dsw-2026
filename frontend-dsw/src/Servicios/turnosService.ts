@@ -26,9 +26,14 @@ export async function obtenerTurnosQueAtiendo(estado?: EstadoTurno): Promise<Tur
   return respuesta.data;
 }
 
-export async function cancelarTurno(id: number, motivoCancelacion: string): Promise<Turno> {
+export async function cancelarTurno(
+  id: number,
+  motivoCancelacion: string,
+  motivoCancelacionPreestablecidoId: number | null
+): Promise<Turno> {
   const respuesta = await api.patch<ApiResponse<Turno>>(`/turnos/${id}/cancelar`, {
-    motivoCancelacion,
+    motivoCancelacion: motivoCancelacion || undefined,
+    motivoCancelacionPreestablecidoId: motivoCancelacionPreestablecidoId ?? undefined,
   });
   return respuesta.data;
 }
@@ -64,7 +69,40 @@ export async function getDisponibilidadEspecialidad(
   return respuesta.data;
 }
 
-export async function reservarTurno(doctorId: number, fechaHoraTurno: string): Promise<Turno> {
-  const respuesta = await api.post<ApiResponse<Turno>>("/turnos", { doctorId, fechaHoraTurno });
+export async function reservarTurno(
+  doctorId: number,
+  fechaHoraTurno: string,
+  obraSocialId: number | null
+): Promise<Turno> {
+  const respuesta = await api.post<ApiResponse<Turno>>("/turnos", {
+    doctorId,
+    fechaHoraTurno,
+    obraSocialId,
+  });
+  return respuesta.data;
+}
+
+// fechas (YYYY-MM-DD) del mes que tienen al menos un horario libre con ese doctor,
+// para pintar el calendario de reserva
+export async function getDisponibilidadMesDoctor(
+  doctorId: number,
+  anio: number,
+  mes: number
+): Promise<string[]> {
+  const respuesta = await api.get<ApiResponse<string[]>>(
+    `/turnos/disponibilidad-mes?doctorId=${doctorId}&anio=${anio}&mes=${mes}`
+  );
+  return respuesta.data;
+}
+
+// idem pero para cualquier doctor de una especialidad
+export async function getDisponibilidadMesEspecialidad(
+  especialidadId: number,
+  anio: number,
+  mes: number
+): Promise<string[]> {
+  const respuesta = await api.get<ApiResponse<string[]>>(
+    `/turnos/disponibilidad-mes-especialidad?especialidadId=${especialidadId}&anio=${anio}&mes=${mes}`
+  );
   return respuesta.data;
 }

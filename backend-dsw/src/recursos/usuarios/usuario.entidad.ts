@@ -22,7 +22,7 @@ export class Usuario {
   @Property({ nullable: false })
   rol!: string;
 
-  // dato de perfil, se puede editar salvo el dni (ver el comentario en update())
+  // dato de perfil editable; la identidad técnica del usuario es su id
   @Property({ nullable: true })
   dni?: string;
 
@@ -30,9 +30,6 @@ export class Usuario {
   // proyecto), un varchar corto no entra un .png codificado
   @Property({ nullable: true, columnType: 'longtext' })
   foto?: string;
-
-  @Property({ nullable: true })
-  obraSocial?: string;
 
   @Property({ nullable: true })
   direccion?: string;

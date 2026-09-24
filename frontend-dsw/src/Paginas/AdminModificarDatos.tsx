@@ -30,7 +30,7 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import type { Doctor, Especialidad } from "../Tipos/dominio";
+import type { Doctor, Especialidad, MotivoCancelacion, ObraSocial } from "../Tipos/dominio";
 import {
   getEspecialidades,
   actualizarEspecialidad,
@@ -38,6 +38,16 @@ import {
 } from "../Servicios/especialidadesService";
 import { getDoctores, actualizarDoctor, darDeBajaDoctor } from "../Servicios/doctoresService";
 import { getAgendas, actualizarAgenda, eliminarAgenda, type Agenda } from "../Servicios/agendaService";
+import {
+  getObrasSociales,
+  actualizarObraSocial,
+  eliminarObraSocial,
+} from "../Servicios/obraSocialService";
+import {
+  getMotivosCancelacion,
+  actualizarMotivoCancelacion,
+  eliminarMotivoCancelacion,
+} from "../Servicios/motivoCancelacionService";
 
 const DIAS_SEMANA = [
   { value: 0, label: "Domingo" },
@@ -60,18 +70,23 @@ export default function AdminModificarDatos() {
             Modificar datos
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Editá o eliminá especialidades, doctores y agendas ya cargadas.
+            Editá o eliminá especialidades, doctores, agendas, obras sociales y motivos de
+            cancelación ya cargados.
           </Typography>
         </Box>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="fullWidth" sx={{ mt: 2 }}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" sx={{ mt: 2 }}>
           <Tab label="Especialidad" />
           <Tab label="Doctor" />
           <Tab label="Agenda" />
+          <Tab label="Obra social" />
+          <Tab label="Motivo de cancelación" />
         </Tabs>
         <Box sx={{ p: 2 }}>
           {tab === 0 && <ListaEspecialidades />}
           {tab === 1 && <ListaDoctores />}
           {tab === 2 && <ListaAgendas />}
+          {tab === 3 && <ListaObrasSociales />}
+          {tab === 4 && <ListaMotivosCancelacion />}
         </Box>
       </Paper>
     </Container>
@@ -595,6 +610,294 @@ function ListaAgendas() {
             </Alert>
           )}
           <Typography>¿Seguro que querés eliminar este bloque de agenda?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBorrando(null)}>Cancelar</Button>
+          <Button color="error" variant="contained" onClick={confirmarBorrado}>
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+}
+
+function ListaObrasSociales() {
+  const [obrasSociales, setObrasSociales] = useState<ObraSocial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [editando, setEditando] = useState<ObraSocial | null>(null);
+  const [nombre, setNombre] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [errorForm, setErrorForm] = useState<string | null>(null);
+
+  const [borrando, setBorrando] = useState<ObraSocial | null>(null);
+  const [errorBorrar, setErrorBorrar] = useState<string | null>(null);
+
+  const cargar = () => {
+    setLoading(true);
+    getObrasSociales()
+      .then(setObrasSociales)
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "No se pudieron cargar las obras sociales.")
+      )
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    cargar();
+  }, []);
+
+  const abrirEdicion = (os: ObraSocial) => {
+    setEditando(os);
+    setNombre(os.nombre);
+    setErrorForm(null);
+  };
+
+  const guardarEdicion = async () => {
+    if (!editando) return;
+    setGuardando(true);
+    setErrorForm(null);
+    try {
+      await actualizarObraSocial(editando.id, { nombre });
+      setEditando(null);
+      cargar();
+    } catch (err) {
+      setErrorForm(err instanceof Error ? err.message : "No se pudo actualizar.");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const confirmarBorrado = async () => {
+    if (!borrando) return;
+    setErrorBorrar(null);
+    try {
+      await eliminarObraSocial(borrando.id);
+      setBorrando(null);
+      cargar();
+    } catch (err) {
+      setErrorBorrar(err instanceof Error ? err.message : "No se pudo eliminar.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+  if (error) return <Alert severity="error">{error}</Alert>;
+  if (obrasSociales.length === 0) return <Alert severity="info">No hay obras sociales cargadas.</Alert>;
+
+  return (
+    <>
+      <List>
+        {obrasSociales.map((os) => (
+          <ListItem
+            key={os.id}
+            secondaryAction={
+              <Stack direction="row" spacing={1}>
+                <IconButton edge="end" onClick={() => abrirEdicion(os)}>
+                  <EditIcon />
+                </IconButton>
+                <IconButton
+                  edge="end"
+                  color="error"
+                  onClick={() => {
+                    setBorrando(os);
+                    setErrorBorrar(null);
+                  }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Stack>
+            }
+          >
+            <ListItemText primary={os.nombre} secondary={`Id ${os.id}`} />
+          </ListItem>
+        ))}
+      </List>
+
+      <Dialog open={editando !== null} onClose={() => setEditando(null)} fullWidth maxWidth="xs">
+        <DialogTitle>Editar obra social</DialogTitle>
+        <DialogContent>
+          {errorForm && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {errorForm}
+            </Alert>
+          )}
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Nombre"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditando(null)}>Cancelar</Button>
+          <Button variant="contained" onClick={guardarEdicion} disabled={guardando}>
+            {guardando ? <CircularProgress size={20} color="inherit" /> : "Guardar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={borrando !== null} onClose={() => setBorrando(null)}>
+        <DialogTitle>Eliminar obra social</DialogTitle>
+        <DialogContent>
+          {errorBorrar && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {errorBorrar}
+            </Alert>
+          )}
+          <Typography>¿Seguro que querés eliminar "{borrando?.nombre}"?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBorrando(null)}>Cancelar</Button>
+          <Button color="error" variant="contained" onClick={confirmarBorrado}>
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+}
+
+function ListaMotivosCancelacion() {
+  const [motivos, setMotivos] = useState<MotivoCancelacion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [editando, setEditando] = useState<MotivoCancelacion | null>(null);
+  const [descripcion, setDescripcion] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [errorForm, setErrorForm] = useState<string | null>(null);
+
+  const [borrando, setBorrando] = useState<MotivoCancelacion | null>(null);
+  const [errorBorrar, setErrorBorrar] = useState<string | null>(null);
+
+  const cargar = () => {
+    setLoading(true);
+    getMotivosCancelacion()
+      .then(setMotivos)
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "No se pudieron cargar los motivos.")
+      )
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    cargar();
+  }, []);
+
+  const abrirEdicion = (motivo: MotivoCancelacion) => {
+    setEditando(motivo);
+    setDescripcion(motivo.descripcion);
+    setErrorForm(null);
+  };
+
+  const guardarEdicion = async () => {
+    if (!editando) return;
+    setGuardando(true);
+    setErrorForm(null);
+    try {
+      await actualizarMotivoCancelacion(editando.id, { descripcion });
+      setEditando(null);
+      cargar();
+    } catch (err) {
+      setErrorForm(err instanceof Error ? err.message : "No se pudo actualizar.");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const confirmarBorrado = async () => {
+    if (!borrando) return;
+    setErrorBorrar(null);
+    try {
+      await eliminarMotivoCancelacion(borrando.id);
+      setBorrando(null);
+      cargar();
+    } catch (err) {
+      setErrorBorrar(err instanceof Error ? err.message : "No se pudo eliminar.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+  if (error) return <Alert severity="error">{error}</Alert>;
+  if (motivos.length === 0) return <Alert severity="info">No hay motivos de cancelación cargados.</Alert>;
+
+  return (
+    <>
+      <List>
+        {motivos.map((motivo) => (
+          <ListItem
+            key={motivo.id}
+            secondaryAction={
+              <Stack direction="row" spacing={1}>
+                <IconButton edge="end" onClick={() => abrirEdicion(motivo)}>
+                  <EditIcon />
+                </IconButton>
+                <IconButton
+                  edge="end"
+                  color="error"
+                  onClick={() => {
+                    setBorrando(motivo);
+                    setErrorBorrar(null);
+                  }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Stack>
+            }
+          >
+            <ListItemText primary={motivo.descripcion} secondary={`Id ${motivo.id}`} />
+          </ListItem>
+        ))}
+      </List>
+
+      <Dialog open={editando !== null} onClose={() => setEditando(null)} fullWidth maxWidth="xs">
+        <DialogTitle>Editar motivo de cancelación</DialogTitle>
+        <DialogContent>
+          {errorForm && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {errorForm}
+            </Alert>
+          )}
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Descripción"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditando(null)}>Cancelar</Button>
+          <Button variant="contained" onClick={guardarEdicion} disabled={guardando}>
+            {guardando ? <CircularProgress size={20} color="inherit" /> : "Guardar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={borrando !== null} onClose={() => setBorrando(null)}>
+        <DialogTitle>Eliminar motivo de cancelación</DialogTitle>
+        <DialogContent>
+          {errorBorrar && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {errorBorrar}
+            </Alert>
+          )}
+          <Typography>¿Seguro que querés eliminar "{borrando?.descripcion}"?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setBorrando(null)}>Cancelar</Button>

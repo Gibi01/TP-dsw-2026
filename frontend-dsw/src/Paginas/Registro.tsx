@@ -1,6 +1,6 @@
 // src/Paginas/Registro.tsx
 import { useState, type FormEvent } from "react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Container,
   Paper,
@@ -29,6 +29,15 @@ const initialForm: RegistroUsuarioForm = {
   confirmPassword: "",
 };
 
+function capitalizar(valor: string): string {
+  if (!valor) return valor;
+  return valor.charAt(0).toUpperCase() + valor.slice(1);
+}
+
+interface LocationState {
+  mensaje?: string;
+}
+
 export default function Registro() {
   const [form, setForm] = useState<RegistroUsuarioForm>(initialForm);
   const [errors, setErrors] = useState<Partial<Record<keyof RegistroUsuarioForm, string>>>({});
@@ -37,11 +46,15 @@ export default function Registro() {
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [mostrarConfirmPassword, setMostrarConfirmPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = (location.state as LocationState) ?? {};
 
   const handleChange =
     (field: keyof RegistroUsuarioForm) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+      const valor =
+        field === "nombre" || field === "apellido" ? capitalizar(e.target.value) : e.target.value;
+      setForm((prev) => ({ ...prev, [field]: valor }));
     };
 
   const validate = (): boolean => {
@@ -56,7 +69,6 @@ export default function Registro() {
       nuevosErrores.password = "La contraseña debe tener al menos 6 caracteres.";
     if (form.confirmPassword !== form.password)
       nuevosErrores.confirmPassword = "Las contraseñas no coinciden.";
-
     setErrors(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
@@ -85,6 +97,12 @@ export default function Registro() {
         <Typography variant="h4" component="h1" gutterBottom>
           Crear cuenta
         </Typography>
+
+        {state.mensaje && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            {state.mensaje}
+          </Alert>
+        )}
 
         {errorApi && (
           <Alert severity="error" sx={{ mb: 2 }}>
