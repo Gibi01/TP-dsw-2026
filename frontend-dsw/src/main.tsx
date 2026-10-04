@@ -16,7 +16,7 @@ createRoot(document.getElementById("root")!).render(
       <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
         <AuthProvider>
           <ResponsiveAppBar />
-          <div className="min-h-screen bg-[url('/bgtemporal.jpg')] bg-cover bg-center bg-fixed">
+          <div className="min-h-screen bg-[url('/raiden-medico-1920x1080.jpg')] bg-cover bg-center bg-fixed">
             <App />
           </div>
         </AuthProvider>

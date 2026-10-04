@@ -1,59 +1,46 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { fromNodeHeaders } from 'better-auth/node';
+import { auth } from '../auth.js';
+import { orm } from '../orm.js';
 import { config } from '../config.js';
+import { Usuario } from '../../recursos/usuarios/usuario.entidad.js';
 import { UnauthorizedError, ForbiddenError } from '../errores.js';
-
-export interface JwtPayload {
-  id: number;
-  rol: string;
-}
 
 declare global {
   namespace Express {
-    interface Request {
-      usuario?: JwtPayload;
-    }
+    interface Request { usuario?: { id: number; rol: string } }
   }
 }
 
-export function verificarToken(req: Request, res: Response, next: NextFunction) {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
-    throw new UnauthorizedError('Token no provisto');
-  }
-
-  const token = header.slice('Bearer '.length);
-  try {
-    req.usuario = jwt.verify(token, config.jwt.secret) as JwtPayload;
-    next();
-  } catch {
-    throw new UnauthorizedError('Token inválido o expirado');
-  }
-}
-
-// version de verificarToken que no explota si no hay token, total no asigna req.usuario y listo.
-// la uso en rutas publicas que cambian un poco si sos admin (ej el listado de doctores)
-export function intentarVerificarToken(req: Request, res: Response, next: NextFunction) {
-  const header = req.headers.authorization;
-  if (header && header.startsWith('Bearer ')) {
-    try {
-      req.usuario = jwt.verify(header.slice('Bearer '.length), config.jwt.secret) as JwtPayload;
-    } catch {
-      // token invalido o vencido, no importa, seguimos como si no hubiera token
+async function cargarSesion(req: Request) {
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    const origin = req.headers.origin;
+    if ((origin && origin !== config.auth.origin) || req.headers['sec-fetch-site'] === 'cross-site') {
+      throw new ForbiddenError('Origen de la solicitud no permitido');
     }
   }
+  const sesion = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
+  if (!sesion) return;
+  const perfil = await orm.em.findOne(Usuario, { authUserId: sesion.user.id });
+  if (!perfil) throw new UnauthorizedError('La cuenta no tiene un perfil asociado');
+  req.usuario = { id: perfil.id, rol: sesion.user.role ?? 'paciente' };
+}
+
+export async function verificarSesion(req: Request, res: Response, next: NextFunction) {
+  await cargarSesion(req);
+  if (!req.usuario) throw new UnauthorizedError('Sesión inválida o expirada');
   next();
 }
 
-// chequea que req.usuario tenga alguno de estos roles, siempre va despues de verificarToken
+export async function intentarVerificarSesion(req: Request, res: Response, next: NextFunction) {
+  await cargarSesion(req);
+  next();
+}
+
 export function autorizarRoles(...rolesPermitidos: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.usuario) {
-      throw new UnauthorizedError();
-    }
-    if (!rolesPermitidos.includes(req.usuario.rol)) {
-      throw new ForbiddenError();
-    }
+    if (!req.usuario) throw new UnauthorizedError();
+    if (!rolesPermitidos.includes(req.usuario.rol)) throw new ForbiddenError();
     next();
   };
 }

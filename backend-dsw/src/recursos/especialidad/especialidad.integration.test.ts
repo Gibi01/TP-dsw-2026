@@ -8,6 +8,7 @@ process.env.NODE_ENV = 'test';
 
 const { app } = await import('../../../dist/app.js');
 const { orm } = await import('../../../dist/shared/orm.js');
+const { authPool } = await import('../../../dist/shared/auth.js');
 const { Especialidad } = await import('../../../dist/recursos/especialidad/especialidad.entidad.js');
 
 const especialidadDeTest = { idEspecialidad: 9001, descripcionEsp: 'Especialidad de test' };
@@ -19,6 +20,7 @@ beforeAll(async () => { // no deberia haber 9000 especialidades pero por las dud
 afterAll(async () => {
   await orm.em.fork().nativeDelete(Especialidad, { idEspecialidad: especialidadDeTest.idEspecialidad });
   await orm.close();
+  await authPool.end();
 });
 
 describe('API /api/especialidades', () => {
@@ -28,7 +30,7 @@ describe('API /api/especialidades', () => {
     expect(Array.isArray(res.body.data)).toBe(true);
   });
 
-  it('POST /api/especialidades sin token responde 401', async () => {
+  it('POST /api/especialidades sin sesión responde 401', async () => {
     const res = await request(app).post('/api/especialidades').send(especialidadDeTest);
     expect(res.status).toBe(401);
   });

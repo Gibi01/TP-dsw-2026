@@ -1,55 +1,41 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+const mocks = vi.hoisted(() => ({ getSession: vi.fn(), findOne: vi.fn() }));
+vi.mock('../auth.js', () => ({ auth: { api: { getSession: mocks.getSession } } }));
+vi.mock('../orm.js', () => ({ orm: { em: { findOne: mocks.findOne } } }));
+vi.mock('../config.js', () => ({ config: { auth: { origin: 'http://localhost:5173' } } }));
+import { verificarSesion, autorizarRoles } from './auth.middleware.js';
+import { UnauthorizedError, ForbiddenError } from '../errores.js';
 
-process.env.JWT_SECRET ??= 'secreto-de-test';
-process.env.DB_HOST ??= 'localhost';
-process.env.DB_NAME ??= 'test';
-process.env.DB_USER ??= 'test';
-process.env.DB_PASSWORD ??= 'test';
+beforeEach(() => vi.resetAllMocks());
 
-const { verificarToken, autorizarRoles } = await import('./auth.middleware.js');
-const { UnauthorizedError, ForbiddenError } = await import('../errores.js');
-const jwt = (await import('jsonwebtoken')).default;
-
-function crearRequest(authorization?: string) {
-  return { headers: { authorization }, usuario: undefined } as any;
-}
-
-describe('verificarToken', () => {
-  it('lanza UnauthorizedError si no hay header Authorization', () => {
-    const req = crearRequest(undefined);
-    expect(() => verificarToken(req, {} as any, vi.fn())).toThrow(UnauthorizedError);
+describe('verificarSesion', () => {
+  it('rechaza una sesión ausente o vencida', async () => {
+    mocks.getSession.mockResolvedValue(null);
+    await expect(verificarSesion({ headers: {} } as any, {} as any, vi.fn())).rejects.toThrow(UnauthorizedError);
   });
-
-  it('lanza UnauthorizedError si el token es inválido', () => {
-    const req = crearRequest('Bearer token-invalido');
-    expect(() => verificarToken(req, {} as any, vi.fn())).toThrow(UnauthorizedError);
+  it('rechaza una cuenta sin perfil', async () => {
+    mocks.getSession.mockResolvedValue({ user: { id: 'cuenta', role: 'paciente' } });
+    mocks.findOne.mockResolvedValue(null);
+    await expect(verificarSesion({ headers: {} } as any, {} as any, vi.fn())).rejects.toThrow(UnauthorizedError);
   });
-
-  it('asigna req.usuario y llama a next cuando el token es válido', () => {
-    const token = jwt.sign({ id: 1, rol: 'admin' }, process.env.JWT_SECRET as string);
-    const req = crearRequest(`Bearer ${token}`);
+  it('usa el rol de Better Auth y el id del perfil para conservar los controles de propiedad', async () => {
+    mocks.getSession.mockResolvedValue({ user: { id: 'cuenta', role: 'paciente' } });
+    mocks.findOne.mockResolvedValue({ id: 7, rol: 'admin' });
+    const req = { headers: {}, usuario: undefined } as any;
     const next = vi.fn();
-
-    verificarToken(req, {} as any, next);
-
+    await verificarSesion(req, {} as any, next);
+    expect(req.usuario).toEqual({ id: 7, rol: 'paciente' });
     expect(next).toHaveBeenCalledOnce();
-    expect(req.usuario).toMatchObject({ id: 1, rol: 'admin' });
   });
 });
 
 describe('autorizarRoles', () => {
-  it('deja pasar si el usuario tiene uno de los roles permitidos', () => {
-    const req = { usuario: { id: 1, rol: 'admin' } } as any;
+  it('permite un rol autorizado', () => {
     const next = vi.fn();
-
-    autorizarRoles('admin', 'paciente')(req, {} as any, next);
-
+    autorizarRoles('admin')({ usuario: { id: 1, rol: 'admin' } } as any, {} as any, next);
     expect(next).toHaveBeenCalledOnce();
   });
-
-  it('lanza ForbiddenError si el rol no está permitido', () => {
-    const req = { usuario: { id: 1, rol: 'paciente' } } as any;
-
-    expect(() => autorizarRoles('admin')(req, {} as any, vi.fn())).toThrow(ForbiddenError);
+  it('rechaza un rol diferente', () => {
+    expect(() => autorizarRoles('admin')({ usuario: { id: 1, rol: 'paciente' } } as any, {} as any, vi.fn())).toThrow(ForbiddenError);
   });
 });

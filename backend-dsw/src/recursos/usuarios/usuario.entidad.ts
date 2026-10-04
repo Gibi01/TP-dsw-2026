@@ -11,10 +11,8 @@ export class Usuario {
   @Property({ nullable: false })
   apellido!: string;
 
-  // con hidden: true el hash nunca viaja en un JSON, ni aunque en algun endpoint se
-  // termine serializando el Usuario completo
-  @Property({ nullable: false, hidden: true })
-  password!: string;
+  @Property({ unique: true, hidden: true })
+  authUserId!: string;
 
   @Property({ nullable: false })
   email!: string;

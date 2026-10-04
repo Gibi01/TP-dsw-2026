@@ -1,9 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { NotFoundError as OrmNotFoundError, ValidationError as OrmValidationError } from '@mikro-orm/core';
 import { ErrorApi } from './errores.js';
+import { APIError } from 'better-auth/api';
 
 // manejador de errores global, tiene que ir al final de todo (despues del catch-all de ruta no encontrada)
 export function manejadorErrores(err: unknown, req: Request, res: Response, next: NextFunction) {
+  if (err instanceof APIError) {
+    return res.status(err.statusCode).json({ message: err.body?.message ?? err.message });
+  }
   if (err instanceof ErrorApi) {
     return res.status(err.status).json({ message: err.message });
   }

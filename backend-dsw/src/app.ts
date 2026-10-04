@@ -7,7 +7,8 @@ import { RequestContext } from '@mikro-orm/core';
 import { config } from './shared/config.js';
 import { manejadorErrores, rutaNoEncontrada } from './shared/manejadorErrores.js';
 
-import authRouter from './recursos/auth/auth.rutas.js';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './shared/auth.js';
 import usuarioRouter from './recursos/usuarios/usuario.rutas.js';
 import doctorRouter from './recursos/doctor/doctor.rutas.js';
 import especialidadRouter from './recursos/especialidad/especialidad.rutas.js';
@@ -19,7 +20,8 @@ import { iniciarTareaNoAsistidos } from './recursos/turno/turno.controlador.js';
 import { iniciarNotificacionesTurnos } from './recursos/turno/notificacionTurno.servicio.js';
 
 export const app = express();
-app.use(cors());
+app.use(cors({ origin: config.auth.origin, credentials: true }));
+app.all('/api/auth/*splat', toNodeHandler(auth));
 // subimos el limite de 100kb a 5mb porque la foto de perfil viaja en base64 en el body
 app.use(express.json({ limit: '5mb' }));
 
@@ -29,7 +31,6 @@ app.use((req, res, next) => {
 
 app.use(morgan('dev'));
 
-app.use('/api/auth', authRouter);
 app.use('/api/usuarios', usuarioRouter);
 app.use('/api/doctores', doctorRouter);
 app.use('/api/especialidades', especialidadRouter);
@@ -42,7 +43,7 @@ app.use(rutaNoEncontrada);
 app.use(manejadorErrores);
 
 if (process.env.NODE_ENV !== 'test') {
-  await syncSchema(); // never in production
+  if (process.env.NODE_ENV !== 'production') await syncSchema();
   iniciarTareaNoAsistidos(); // cada 5min pasa los turnos vencidos de pendiente a no_asistido
   iniciarNotificacionesTurnos();
 

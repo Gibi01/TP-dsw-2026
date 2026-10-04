@@ -1,87 +1,77 @@
-// src/Contextos/AuthContext.tsx
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
-import type { UsuarioSesion } from "../Tipos/dominio";
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import type { UsuarioSesion } from '../Tipos/dominio';
+import { authClient } from '../Servicios/authClient';
+import { obtenerSesion } from '../Servicios/authService';
 
 interface AuthContextValue {
   usuario: UsuarioSesion | null;
   estaAutenticado: boolean;
-  guardarSesion: (token: string, usuario: UsuarioSesion) => void;
+  cargandoSesion: boolean;
+  guardarSesion: (usuario: UsuarioSesion) => void;
   actualizarUsuario: (parcial: Partial<UsuarioSesion>) => void;
-  cerrarSesion: () => void;
+  cerrarSesion: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function leerUsuarioGuardado(): UsuarioSesion | null {
-  const crudo = localStorage.getItem("usuario");
-  if (!crudo) return null;
-  try {
-    return JSON.parse(crudo) as UsuarioSesion;
-  } catch {
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [usuario, setUsuario] = useState<UsuarioSesion | null>(leerUsuarioGuardado);
+  const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
+  const [cargandoPerfil, setCargandoPerfil] = useState(true);
+  const { data: sesion, isPending } = authClient.useSession();
   const navigate = useNavigate();
 
-  const guardarSesion = (token: string, nuevoUsuario: UsuarioSesion) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("usuario", JSON.stringify(nuevoUsuario));
-    setUsuario(nuevoUsuario);
-  };
+  useEffect(() => {
+    // Retira los datos de la autenticación anterior; no se guardan nuevas credenciales aquí.
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+  }, []);
 
-  // actualiza el usuario sin tener que volver a loguearse (por ej cuando cambia la foto)
-  const actualizarUsuario = (parcial: Partial<UsuarioSesion>) => {
-    setUsuario((prev) => {
-      if (!prev) return prev;
-      const actualizado = { ...prev, ...parcial };
-      localStorage.setItem("usuario", JSON.stringify(actualizado));
-      return actualizado;
+  useEffect(() => {
+    if (isPending) return;
+    let cancelado = false;
+    if (!sesion) {
+      setUsuario(null);
+      setCargandoPerfil(false);
+      return;
+    }
+    setCargandoPerfil(true);
+    obtenerSesion().then((perfil) => {
+      if (!cancelado) setUsuario(perfil);
+    }).catch(() => {
+      if (!cancelado) setUsuario(null);
+    }).finally(() => {
+      if (!cancelado) setCargandoPerfil(false);
     });
-  };
+    return () => { cancelado = true; };
+  }, [sesion?.user.id, isPending]);
 
-  const cerrarSesion = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-    setUsuario(null);
-  };
-
-  // si el token vencio (evento que tira api.ts en un 401) cierra sesion sola y manda al login
   useEffect(() => {
     function manejarSesionVencida() {
       setUsuario(null);
-      navigate("/login", {
-        replace: true,
-        state: { mensaje: "Tu sesión expiró. Iniciá sesión de nuevo." },
-      });
+      navigate('/login', { replace: true, state: { mensaje: 'Tu sesión expiró. Iniciá sesión de nuevo.' } });
     }
-    window.addEventListener("auth:sesion-vencida", manejarSesionVencida);
-    return () => window.removeEventListener("auth:sesion-vencida", manejarSesionVencida);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    window.addEventListener('auth:sesion-vencida', manejarSesionVencida);
+    return () => window.removeEventListener('auth:sesion-vencida', manejarSesionVencida);
+  }, [navigate]);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        usuario,
-        estaAutenticado: usuario !== null,
-        guardarSesion,
-        actualizarUsuario,
-        cerrarSesion,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const cerrarSesion = async () => {
+    const { error } = await authClient.signOut();
+    if (error) throw new Error(error.message ?? 'No se pudo cerrar la sesión');
+    setUsuario(null);
+  };
+
+  return <AuthContext.Provider value={{
+    usuario, estaAutenticado: usuario !== null,
+    cargandoSesion: isPending || cargandoPerfil,
+    guardarSesion: setUsuario,
+    actualizarUsuario: (parcial) => setUsuario((prev) => prev ? { ...prev, ...parcial } : null),
+    cerrarSesion,
+  }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {
   const contexto = useContext(AuthContext);
-  if (!contexto) {
-    throw new Error("useAuth debe usarse dentro de <AuthProvider>");
-  }
+  if (!contexto) throw new Error('useAuth debe usarse dentro de <AuthProvider>');
   return contexto;
 }

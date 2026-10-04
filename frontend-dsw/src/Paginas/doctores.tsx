@@ -58,6 +58,7 @@ export default function Doctores() {
     setError(null);
 
     getDoctores({
+      conAgenda: true,
       nombre,
       especialidadId: especialidadId === "" ? undefined : especialidadId,
     })
@@ -145,7 +146,7 @@ export default function Doctores() {
             <Card key={doc.matricula} variant="outlined">
               <CardActionArea onClick={() => irAlDetalle(doc.matricula)}>
                 <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Avatar sx={{ bgcolor: "primary.main" }}>
+                  <Avatar src={doc.foto ?? undefined} alt={`${doc.nombre} ${doc.apellido}`} sx={{ bgcolor: "primary.main", width: 64, height: 64 }}>
                     <PersonIcon />
                   </Avatar>
                   <Box sx={{ flexGrow: 1 }}>

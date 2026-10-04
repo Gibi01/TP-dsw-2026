@@ -73,6 +73,7 @@ function doctorPublico(doctor: Doctor) {
     matricula: doctor.matricula,
     nombre: usuario?.nombre,
     apellido: usuario?.apellido,
+    foto: usuario?.foto ?? null,
     especialidades: especialidades.map((e) => ({
       idEspecialidad: e.idEspecialidad,
       descripcionEsp: e.descripcionEsp,
@@ -149,7 +150,7 @@ function iniciarTareaNoAsistidos(): void {
 
 // genera los horarios del doctor para una fecha en base a su Agenda real (los bloques
 // semanales que carga el admin/doctor), no una franja fija. si no hay bloque ese dia de la
-// semana, no hay horarios ese dia
+// semana, no hay horarios ese dia. Solo se ofrecen horarios presentes o futuros.
 async function generarSlotsDelDia(doctor: Doctor, fecha: string): Promise<Date[]> {
   const [anio, mes, dia] = fecha.split('-').map(Number);
   const diaSemana = new Date(anio, mes - 1, dia).getDay();
@@ -164,7 +165,8 @@ async function generarSlotsDelDia(doctor: Doctor, fecha: string): Promise<Date[]
       slots.push(new Date(anio, mes - 1, dia, Math.floor(m / 60), m % 60));
     }
   }
-  return slots;
+  const ahora = Date.now();
+  return slots.filter((slot) => slot.getTime() >= ahora);
 }
 
 async function slotsOcupados(doctor: Doctor, fecha: string): Promise<Set<number>> {

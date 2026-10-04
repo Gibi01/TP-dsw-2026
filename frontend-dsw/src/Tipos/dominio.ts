@@ -1,9 +1,19 @@
-// src/Tipos/dominio.ts
-// interfaces del dominio, calcadas de lo que devuelve el backend de verdad
+// Interfaces del modelo de dominio. Reflejan el shape real que devuelve el backend
+// (ver backend-dsw/src/recursos/*/*.entidad.ts), no un mock aparte.
 
 export interface Especialidad {
   idEspecialidad: number;
   descripcionEsp: string;
+}
+
+export interface Doctor {
+  matricula: number;
+  nombre: string;
+  apellido: string;
+  email?: string;
+  foto?: string | null;
+  especialidades?: Especialidad[];
+  activo?: boolean;
 }
 
 export interface ObraSocial {
@@ -14,18 +24,6 @@ export interface ObraSocial {
 export interface MotivoCancelacion {
   id: number;
   descripcion: string;
-}
-
-// el doctor tambien es un usuario, nombre/apellido/email/foto estan ahi, no se duplican
-// "activo" es la baja logica, si esta en false no se lo ofrece nunca como opcion
-export interface Doctor {
-  matricula: number;
-  nombre: string;
-  apellido: string;
-  email?: string;
-  foto?: string | null;
-  especialidades?: Especialidad[];
-  activo?: boolean;
 }
 
 export interface RegistroUsuarioForm {
@@ -59,12 +57,11 @@ export interface PerfilUsuario {
   rol: string;
   dni?: string;
   foto?: string | null;
+  obraSocial?: string;
   direccion?: string;
   telefonoCelular?: string;
 }
 
-// pendiente = recien reservado, cancelado = el paciente lo cancelo, asistido = vino (lo confirma
-// el doctor), no_asistido = no vino ni cancelo (a mano o automatico a las 12hs del turno)
 export type EstadoTurno = "pendiente" | "cancelado" | "asistido" | "no_asistido";
 
 export interface Turno {
@@ -80,7 +77,6 @@ export interface Turno {
   motivoCancelacionPreestablecido: MotivoCancelacion | null;
 }
 
-// datos del paciente que vienen adentro del turno, como los ve el doctor en "Mis turnos"
 export interface PacienteDeTurno {
   id: number;
   nombre: string;
@@ -94,8 +90,6 @@ export interface TurnoParaDoctor extends Turno {
   paciente: PacienteDeTurno;
 }
 
-// un horario disponible de una especialidad, primero se elige el horario y despues el
-// doctor que atiende ahi (puede haber mas de uno)
 export interface SlotEspecialidad {
   fechaHoraTurno: string;
   doctor: Doctor;

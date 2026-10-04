@@ -9,8 +9,10 @@ interface Props {
 
 // igual que RutaAdmin pero pide rol doctor. si esta logueado pero no es doctor lo mando al inicio
 export default function RutaDoctor({ children }: Props) {
-  const { usuario, estaAutenticado } = useAuth();
+  const { usuario, estaAutenticado, cargandoSesion } = useAuth();
   const location = useLocation();
+
+  if (cargandoSesion) return <p role="status">Cargando sesión...</p>;
 
   if (!estaAutenticado) {
     return (

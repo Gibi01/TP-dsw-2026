@@ -22,7 +22,9 @@ import {
   FormLabel,
   Radio,
   RadioGroup,
-  Switch,
+  MenuItem,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import type { EstadoTurno, MotivoCancelacion, Turno } from "../Tipos/dominio";
@@ -54,17 +56,20 @@ export default function MisTurnos() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // si viene de "Ver Turnos Reservados" en Inicio.tsx con ?pendientes=1, arranca filtrado
-  // a futuro. despues se puede sacar el filtro para ver el historico
-  const [soloPendientes, setSoloPendientes] = useState(searchParams.get("pendientes") === "1");
+  // El acceso desde Inicio con ?pendientes=1 mantiene seleccionado ese estado.
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoTurno | "todos">(
+    searchParams.get("pendientes") === "1" ? "pendiente" : "todos"
+  );
+  const [orden, setOrden] = useState<"desc" | "asc">("desc");
 
   const turnosVisibles = useMemo(() => {
-    if (!soloPendientes) return turnos;
-    const ahora = Date.now();
-    return turnos.filter(
-      (t) => t.estado === "pendiente" && new Date(t.fechaHoraTurno).getTime() > ahora
-    );
-  }, [turnos, soloPendientes]);
+    return turnos
+      .filter((turno) => estadoFiltro === "todos" || turno.estado === estadoFiltro)
+      .sort((a, b) => {
+        const diferencia = new Date(a.fechaHoraTurno).getTime() - new Date(b.fechaHoraTurno).getTime();
+        return orden === "asc" ? diferencia : -diferencia;
+      });
+  }, [turnos, estadoFiltro, orden]);
 
   const [turnoACancelar, setTurnoACancelar] = useState<Turno | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -123,21 +128,44 @@ export default function MisTurnos() {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           Mis turnos
         </Typography>
 
-        <FormControlLabel
-          control={
-            <Switch
-              checked={soloPendientes}
-              onChange={(e) => setSoloPendientes(e.target.checked)}
-            />
-          }
-          label="Mostrar solo turnos pendientes"
-        />
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          Consultá tus próximos turnos y tu historial.
+        </Typography>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={3} sx={{ justifyContent: "space-between" }}>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography id="filtro-estado-label" sx={{ mb: 1 }}>Estado</Typography>
+            <ToggleButtonGroup
+              exclusive
+              value={estadoFiltro}
+              onChange={(_, valor: EstadoTurno | "todos" | null) => { if (valor !== null) setEstadoFiltro(valor); }}
+              aria-labelledby="filtro-estado-label"
+              color="primary"
+              sx={{ flexWrap: "wrap" }}
+            >
+              <ToggleButton value="todos">Todos</ToggleButton>
+              <ToggleButton value="pendiente">Pendientes</ToggleButton>
+              <ToggleButton value="cancelado">Cancelados</ToggleButton>
+              <ToggleButton value="asistido">Asistidos</ToggleButton>
+              <ToggleButton value="no_asistido">No asistidos</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+          <TextField
+            select
+            label="Ordenar por"
+            value={orden}
+            onChange={(e) => setOrden(e.target.value as "asc" | "desc")}
+            sx={{ minWidth: { md: 270 }, alignSelf: { md: "flex-end" } }}
+          >
+            <MenuItem value="desc">Recientes a más antiguos</MenuItem>
+            <MenuItem value="asc">Antiguos a más recientes</MenuItem>
+          </TextField>
+        </Stack>
       </Paper>
 
       {error && (
@@ -152,29 +180,31 @@ export default function MisTurnos() {
         </Box>
       ) : turnosVisibles.length === 0 ? (
         <Alert severity="info">
-          {soloPendientes
-            ? "No tenés turnos pendientes."
-            : "Todavía no reservaste ningún turno."}
+          {estadoFiltro === "todos" ? "Todavía no reservaste ningún turno." : "No hay turnos con el estado seleccionado."}
         </Alert>
       ) : (
-        <Stack spacing={2}>
-          {turnosVisibles.map((turno) => (
-            <Card key={turno.id} variant="outlined">
-              <CardContent>
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap" }}
-                >
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+          <Typography sx={{ px: 3, py: 2 }} color="text.secondary" aria-live="polite">
+            {turnosVisibles.length} {turnosVisibles.length === 1 ? "turno" : "turnos"}
+          </Typography>
+          <Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: "180px minmax(0, 1fr) 170px 130px 150px", gap: 2, px: 3, py: 2, bgcolor: "grey.100", borderBottom: 1, borderColor: "divider" }}>
+            <Typography>Fecha y hora</Typography>
+            <Typography>Doctor / Especialidad</Typography>
+            <Typography>Obra social</Typography>
+            <Typography>Estado</Typography>
+            <Typography>Acciones</Typography>
+          </Box>
+          <Box component="ul" aria-label="Listado de turnos" sx={{ listStyle: "none", p: 0, m: 0 }}>
+          {turnosVisibles.map((turno, indice) => (
+            <Card component="li" key={turno.id} variant="outlined" sx={{ border: 0, borderRadius: 0, borderBottom: 1, borderColor: "divider", bgcolor: indice % 2 === 0 ? "background.paper" : "grey.50", "&:last-child": { borderBottom: 0 } }}>
+              <CardContent sx={{ p: 3, "&:last-child": { pb: 3 } }}>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "180px minmax(0, 1fr) 170px 130px 150px" }, gap: 2, alignItems: "center" }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {formatearFechaHora(turno.fechaHoraTurno)}
+                  </Typography>
                   <Box>
                     <Typography variant="h6" component="div">
                        Dr./Dra. {turno.doctor.nombre} {turno.doctor.apellido}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {formatearFechaHora(turno.fechaHoraTurno)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      Obra social: {turno.obraSocial?.nombre ?? "Sin obra social"}
                     </Typography>
                     <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap" }}>
                       {turno.doctor.especialidades?.map((esp) => (
@@ -188,8 +218,14 @@ export default function MisTurnos() {
                       ))}
                     </Stack>
                   </Box>
-                  <Chip label={ETIQUETA_ESTADO[turno.estado]} color={COLOR_ESTADO[turno.estado]} />
-                </Stack>
+                  <Typography variant="body2" color="text.secondary">
+                    {turno.obraSocial?.nombre ?? "Sin obra social"}
+                  </Typography>
+                  <Chip label={ETIQUETA_ESTADO[turno.estado]} color={COLOR_ESTADO[turno.estado]} sx={{ justifySelf: "start" }} />
+                  {turno.estado === "pendiente" ? (
+                    <Button startIcon={<EventBusyIcon />} color="error" onClick={() => abrirCancelacion(turno)} sx={{ justifySelf: "start" }}>Cancelar turno</Button>
+                  ) : <Typography color="text.secondary" aria-label="Sin acciones disponibles">—</Typography>}
+                </Box>
 
                 {turno.estado === "cancelado" &&
                   (turno.motivoCancelacion || turno.motivoCancelacionPreestablecido) && (
@@ -201,20 +237,11 @@ export default function MisTurnos() {
                     </Alert>
                   )}
 
-                {turno.estado === "pendiente" && (
-                  <Button
-                    startIcon={<EventBusyIcon />}
-                    color="error"
-                    sx={{ mt: 2 }}
-                    onClick={() => abrirCancelacion(turno)}
-                  >
-                    Cancelar turno
-                  </Button>
-                )}
               </CardContent>
             </Card>
           ))}
-        </Stack>
+          </Box>
+        </Paper>
       )}
 
       <Dialog

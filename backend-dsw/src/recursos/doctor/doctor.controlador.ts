@@ -1,14 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
-import bcrypt from 'bcryptjs';
+import { fromNodeHeaders } from 'better-auth/node';
+import { auth } from '../../shared/auth.js';
 import { Doctor } from './doctor.entidad.js';
+import { Agenda } from '../agenda/agenda.entidad.js';
 import { Especialidad } from '../especialidad/especialidad.entidad.js';
 import { Usuario } from '../usuarios/usuario.entidad.js';
 import { orm } from '../../shared/orm.js';
 import { limpiarInput, validarCamposRequeridos, parsearIdNumerico } from '../../shared/validacion.js';
-import { ConflictError, ForbiddenError, NotFoundError } from '../../shared/errores.js';
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../shared/errores.js';
 
 const em = orm.em;
-const SALT_ROUNDS = 10;
 
 // en el alta ademas de la matricula se cargan los datos de la cuenta (Usuario) del doctor
 const CAMPOS_ALTA = [
@@ -74,8 +75,12 @@ async function findAll(req: Request, res: Response) {
   const filtro: Record<string, unknown> = {};
   // el admin ve tambien los dados de baja (para poder reactivarlos), el resto (paciente,
   // doctor o sin sesion) solo ve los activos
-  if (req.usuario?.rol !== 'admin') {
+  const esCatalogo = req.usuario?.rol !== 'admin' || req.query.conAgenda === 'true';
+  if (esCatalogo) {
     filtro.activo = true;
+    // Para reservar, el doctor debe tener al menos un bloque semanal creado.
+    const agendas = await em.find(Agenda, {}, { fields: ['doctor'] });
+    filtro.matricula = { $in: [...new Set(agendas.map((agenda) => agenda.doctor.matricula))] };
   }
   const doctores = await em.find(Doctor, filtro, { populate: ['usuario', 'especialidades'] });
   res.status(200).json({ message: 'encontrados todos los doctores', data: doctores.map(serializarDoctor) });
@@ -115,24 +120,31 @@ async function add(req: Request, res: Response) {
     throw new ConflictError('Ya existe un doctor con esa matrícula');
   }
 
-  const passwordHasheada = await bcrypt.hash(datosUsuario.password as string, SALT_ROUNDS);
-  const usuario = em.create(Usuario, {
-    nombre: datosUsuario.nombre as string,
-    apellido: datosUsuario.apellido as string,
-    email,
-    dni: datosUsuario.dni as string,
-    password: passwordHasheada,
-    rol: 'doctor',
+  if (typeof datosUsuario.password !== 'string' || datosUsuario.password.length < 8) {
+    throw new BadRequestError('La contraseña debe tener al menos 8 caracteres');
+  }
+  if (especialidadIds !== undefined && (!Array.isArray(especialidadIds) || especialidadIds.some((id) => !Number.isInteger(id) || id <= 0))) {
+    throw new BadRequestError('Las especialidades deben ser una lista de IDs válidos');
+  }
+  const especialidades = await em.find(Especialidad, { idEspecialidad: { $in: especialidadIds ?? [] } });
+  if (especialidades.length !== new Set(especialidadIds ?? []).size) throw new BadRequestError('Alguna especialidad no existe');
+  const cuenta = await auth.api.createUser({
+    headers: fromNodeHeaders(req.headers),
+    body: { name: datosUsuario.nombre as string, email, password: datosUsuario.password,
+      role: 'doctor', data: { apellido: datosUsuario.apellido, dni: datosUsuario.dni } },
   });
+  const usuario = await em.findOneOrFail(Usuario, { authUserId: cuenta.user.id });
 
   const doctor = em.create(Doctor, { matricula: matriculaNum, usuario, activo: true });
 
-  if (Array.isArray(especialidadIds) && especialidadIds.length > 0) {
-    const especialidades = await em.find(Especialidad, { idEspecialidad: { $in: especialidadIds } });
-    doctor.especialidades.set(especialidades);
-  }
+  doctor.especialidades.set(especialidades);
 
-  await em.flush();
+  try {
+    await em.flush();
+  } catch (error) {
+    await auth.api.removeUser({ headers: fromNodeHeaders(req.headers), body: { userId: cuenta.user.id } });
+    throw error;
+  }
   res.status(201).json({ message: 'doctor creado', data: serializarDoctor(doctor) });
 }
 

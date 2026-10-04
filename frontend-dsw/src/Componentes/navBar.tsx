@@ -140,14 +140,18 @@ function ResponsiveAppBar() {
     handleCloseUserMenu();
   };
 
-  const handleCerrarSesion = () => {
-    cerrarSesion();
-    handleCloseUserMenu();
-    navigate("/");
+  const handleCerrarSesion = async () => {
+    try {
+      await cerrarSesion();
+      handleCloseUserMenu();
+      navigate("/");
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'No se pudo cerrar la sesión');
+    }
   };
 
   return (
-    <AppBar position="static"   sx={{backgroundColor: "#8d6700"}}>
+    <AppBar position="sticky" sx={{ backgroundColor: "#8d6700", top: 0 }}>
       <Container maxWidth="xl" >
         <Toolbar disableGutters>
           <LocalHospitalIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1}} />

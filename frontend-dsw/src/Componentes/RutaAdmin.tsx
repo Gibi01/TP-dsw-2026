@@ -9,8 +9,10 @@ interface Props {
 
 // igual que RutaPrivada pero pide rol admin. si esta logueado pero no es admin lo mando al inicio
 export default function RutaAdmin({ children }: Props) {
-  const { usuario, estaAutenticado } = useAuth();
+  const { usuario, estaAutenticado, cargandoSesion } = useAuth();
   const location = useLocation();
+
+  if (cargandoSesion) return <p role="status">Cargando sesión...</p>;
 
   if (!estaAutenticado) {
     return (

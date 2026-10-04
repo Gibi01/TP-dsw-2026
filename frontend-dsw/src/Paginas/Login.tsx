@@ -25,6 +25,7 @@ const initialForm: LoginForm = { email: "", password: "" };
 interface LocationState {
   from?: string;
   mensaje?: string;
+  tipoMensaje?: "success" | "info";
 }
 
 export default function Login() {
@@ -60,8 +61,8 @@ export default function Login() {
 
     setCargando(true);
     try {
-      const { token, usuario } = await login(form);
-      guardarSesion(token, usuario);
+      const usuario = await login(form);
+      guardarSesion(usuario);
       navigate("/", { replace: true });
     } catch (err) {
       setErrorApi(err instanceof Error ? err.message : "No se pudo iniciar sesión.");
@@ -78,7 +79,7 @@ export default function Login() {
         </Typography>
 
         {state.mensaje && (
-          <Alert severity="info" sx={{ mb: 2 }}>
+          <Alert severity={state.tipoMensaje ?? "info"} sx={{ mb: 2 }}>
             {state.mensaje}
           </Alert>
         )}

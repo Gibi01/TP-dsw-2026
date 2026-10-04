@@ -112,8 +112,8 @@ export default function EspecialidadTurnos() {
 
   const elegirDoctor = (doctor: SlotEspecialidad["doctor"]) => {
     if (!estaAutenticado) {
-      navigate("/login", {
-        state: { from: location.pathname, mensaje: "Iniciá sesión para reservar un turno." },
+      navigate("/registro", {
+        state: { from: location.pathname, mensaje: "Creá una cuenta para reservar un turno." },
       });
       return;
     }
@@ -141,7 +141,7 @@ export default function EspecialidadTurnos() {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           Turnos disponibles
@@ -150,48 +150,60 @@ export default function EspecialidadTurnos() {
           Elegí un horario y después con qué doctor querés atenderte.
         </Typography>
 
-        <CalendarioTurnos
-          fecha={fecha}
-          onCambiarFecha={setFecha}
-          fechasConTurnos={fechasConTurnos}
-          onCambiarMes={cargarMesDisponible}
-        />
-      </Paper>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : horarios.length === 0 ? (
-        <Alert severity="info">No hay turnos disponibles para esta fecha.</Alert>
-      ) : (
-        <Paper variant="outlined" sx={{ p: 3 }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "repeat(3, 1fr)",
-                sm: "repeat(4, 1fr)",
-                md: "repeat(6, 1fr)",
-              },
-              gap: "5px",
-            }}
-          >
-            {horarios.map(([horario, doctores]) => (
-              <Button key={horario} variant="outlined" onClick={() => elegirHorario(horario)}>
-                {formatearHora(horario)}
-                {doctores.length > 1 ? ` (${doctores.length})` : ""}
-              </Button>
-            ))}
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "380px minmax(0, 1fr)" }, gap: 3 }}>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="h6" component="h2" gutterBottom>Elegí una fecha</Typography>
+            <CalendarioTurnos
+              fecha={fecha}
+              onCambiarFecha={setFecha}
+              fechasConTurnos={fechasConTurnos}
+              onCambiarMes={cargarMesDisponible}
+            />
           </Box>
-        </Paper>
-      )}
+          <Box sx={{ minWidth: 0, borderLeft: { md: 1 }, borderColor: { md: "divider" }, pl: { md: 3 } }}>
+            <Typography variant="h6" component="h2" gutterBottom>Horarios disponibles</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {new Date(`${fecha}T00:00:00`).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
+            </Typography>
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+                <CircularProgress />
+              </Box>
+            ) : horarios.length === 0 ? (
+              <Alert severity="info">No hay turnos disponibles para esta fecha.</Alert>
+            ) : (
+              <Box>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "repeat(3, 1fr)",
+                      sm: "repeat(4, 1fr)",
+                      md: "repeat(4, 1fr)",
+                    },
+                    gap: 1.5,
+                  }}
+                >
+                  {horarios.map(([horario, doctores]) => (
+                    <Button key={horario} variant="outlined" sx={{ minHeight: 56 }} onClick={() => elegirHorario(horario)}>
+                      {formatearHora(horario)}
+                      {doctores.length > 1 ? ` (${doctores.length})` : ""}
+                    </Button>
+                  ))}
+                </Box>
+                <Alert severity="info" sx={{ mt: 3 }}>Seleccioná un horario para ver los doctores disponibles.</Alert>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </Paper>
 
       <Dialog open={horarioElegido !== null} onClose={() => setHorarioElegido(null)} fullWidth maxWidth="xs">
         <DialogTitle>Elegí el doctor</DialogTitle>
@@ -204,11 +216,12 @@ export default function EspecialidadTurnos() {
           <List>
             {(horarios.find(([h]) => h === horarioElegido)?.[1] ?? []).map((doctor) => (
               <ListItemButton key={doctor.matricula} onClick={() => elegirDoctor(doctor)}>
-                <Avatar sx={{ bgcolor: "primary.main", mr: 2 }}>
+                <Avatar src={doctor.foto ?? undefined} alt={`${doctor.nombre} ${doctor.apellido}`} sx={{ bgcolor: "primary.main", mr: 2 }}>
                   <PersonIcon />
                 </Avatar>
                 <ListItemText
                   primary={`Dr./Dra. ${doctor.nombre} ${doctor.apellido}`}
+                  slotProps={{ secondary: { component: "div" } }}
                   secondary={
                     <Stack direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: "wrap" }}>
                       {doctor.especialidades?.map((esp) => (

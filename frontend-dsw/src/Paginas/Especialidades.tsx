@@ -12,7 +12,10 @@ import {
   Paper,
   CircularProgress,
   Alert,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 import type { Especialidad } from "../Tipos/dominio";
 import { getEspecialidades } from "../Servicios/especialidadesService";
@@ -22,6 +25,11 @@ export default function Especialidades() {
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const normalizar = (texto: string) => texto.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const especialidadesVisibles = especialidades.filter((esp) =>
+    normalizar(esp.descripcionEsp).includes(normalizar(busqueda))
+  );
 
   useEffect(() => {
     getEspecialidades()
@@ -43,6 +51,14 @@ export default function Especialidades() {
         <Typography variant="body1" color="text.secondary">
           Elegí una especialidad para ver los turnos disponibles.
         </Typography>
+        <TextField
+          fullWidth
+          label="Buscar especialidad por nombre"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          sx={{ mt: 3 }}
+          slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> } }}
+        />
       </Paper>
 
       {error && (
@@ -55,9 +71,13 @@ export default function Especialidades() {
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
           <CircularProgress />
         </Box>
+      ) : especialidadesVisibles.length === 0 && !error ? (
+        <Alert severity="info">
+          {busqueda.trim() ? "No se encontraron especialidades con ese nombre." : "No hay especialidades disponibles."}
+        </Alert>
       ) : (
         <Grid container spacing={2}>
-          {especialidades.map((esp) => (
+          {especialidadesVisibles.map((esp) => (
             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={esp.idEspecialidad}>
               <Card variant="outlined">
                 <CardActionArea onClick={() => handleSelect(esp)}>

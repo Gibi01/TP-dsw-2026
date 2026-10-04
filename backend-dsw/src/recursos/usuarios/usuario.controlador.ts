@@ -1,26 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import bcrypt from 'bcryptjs';
+import { fromNodeHeaders } from 'better-auth/node';
 import { Usuario } from './usuario.entidad.js';
 import { orm } from '../../shared/orm.js';
+import { auth } from '../../shared/auth.js';
 import { limpiarInput, validarCamposRequeridos, parsearIdNumerico } from '../../shared/validacion.js';
-import { BadRequestError, ConflictError, ForbiddenError } from '../../shared/errores.js';
+import { BadRequestError, ForbiddenError } from '../../shared/errores.js';
 
 const em = orm.em;
-
-const CAMPOS = [
-  'nombre',
-  'apellido',
-  'password',
-  'email',
-  'rol',
-  'dni',
-  'foto',
-  'direccion',
-  'telefonoCelular',
-];
-const CAMPOS_REQUERIDOS = ['nombre', 'apellido', 'password', 'email', 'dni'];
-const SALT_ROUNDS = 10;
-const ROLES_VALIDOS = ['paciente', 'admin', 'doctor'];
+const CAMPOS = ['nombre', 'apellido', 'password', 'email', 'rol', 'dni', 'foto', 'direccion', 'telefonoCelular'];
 
 function sanitizeusuarioInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = limpiarInput(req.body, CAMPOS);
@@ -28,82 +15,62 @@ function sanitizeusuarioInput(req: Request, res: Response, next: NextFunction) {
 }
 
 function validarUsuarioCreacion(req: Request, res: Response, next: NextFunction) {
-  validarCamposRequeridos(req.body.sanitizedInput, CAMPOS_REQUERIDOS);
-  // nadie se puede poner admin solo al registrarse
-  req.body.sanitizedInput.rol = 'paciente';
+  validarCamposRequeridos(req.body.sanitizedInput, ['nombre', 'apellido', 'password', 'email', 'dni']);
   next();
 }
 
-function ocultarPassword(usuario: Usuario) {
-  const { password, ...resto } = usuario;
-  return resto;
+async function findAll(req: Request, res: Response) {
+  res.json({ message: 'usuarios encontrados', data: await em.find(Usuario, {}) });
 }
 
-async function findAll(req: Request, res: Response) {
-  const usuarios = await em.find(Usuario, {});
-  res.status(200).json({ message: 'encontrado todos los usuarios', data: usuarios.map(ocultarPassword) });
+async function me(req: Request, res: Response) {
+  res.json({ message: 'tu perfil', data: await em.findOneOrFail(Usuario, { id: req.usuario!.id }) });
 }
 
 async function findOne(req: Request, res: Response) {
   const id = parsearIdNumerico(req.params.id);
-  if (req.usuario?.rol !== 'admin' && req.usuario?.id !== id) {
-    throw new ForbiddenError('Solo podés ver tu propio usuario');
-  }
-  const usuario = await em.findOneOrFail(Usuario, { id });
-  res.status(200).json({ message: 'encontrado usuario', data: ocultarPassword(usuario) });
+  if (req.usuario?.rol !== 'admin' && req.usuario?.id !== id) throw new ForbiddenError('Solo podés ver tu propio usuario');
+  res.json({ message: 'usuario encontrado', data: await em.findOneOrFail(Usuario, { id }) });
 }
 
 async function add(req: Request, res: Response) {
-  const datosUsuario = req.body.sanitizedInput as Record<string, unknown>;
-
-  const email = datosUsuario.email as string;
-  const existente = await em.findOne(Usuario, { email });
-  if (existente) {
-    throw new ConflictError('Ya existe un usuario con ese email');
-  }
-
-  const passwordHasheada = await bcrypt.hash(datosUsuario.password as string, SALT_ROUNDS);
-  const usuario = em.create(Usuario, { ...datosUsuario, password: passwordHasheada } as any);
-
-  await em.flush();
-  res.status(201).json({ message: 'usuario Creado', data: ocultarPassword(usuario) });
+  const datos = req.body.sanitizedInput;
+  const resultado = await auth.api.signUpEmail({
+    body: { name: datos.nombre, apellido: datos.apellido, dni: datos.dni, email: datos.email, password: datos.password },
+    headers: fromNodeHeaders(req.headers),
+  });
+  const usuario = await em.findOneOrFail(Usuario, { authUserId: resultado.user.id });
+  res.status(201).json({ message: 'usuario creado', data: usuario });
 }
 
 async function update(req: Request, res: Response) {
   const id = parsearIdNumerico(req.params.id);
-  if (req.usuario?.rol !== 'admin' && req.usuario?.id !== id) {
-    throw new ForbiddenError('Solo podés modificar tu propio usuario');
+  if (req.usuario?.rol !== 'admin' && req.usuario?.id !== id) throw new ForbiddenError('Solo podés modificar tu propio usuario');
+  const usuario = await em.findOneOrFail(Usuario, { id });
+  const { nombre, apellido, email, rol, password, foto, direccion, telefonoCelular } = req.body.sanitizedInput;
+  if (password !== undefined) throw new BadRequestError('Usá el cambio de contraseña de Better Auth con tu contraseña actual');
+  const headers = fromNodeHeaders(req.headers);
+  if (rol !== undefined && (req.usuario!.rol !== 'admin' || !['paciente', 'admin'].includes(rol))) {
+    throw new ForbiddenError('No podés asignar ese rol');
   }
-
-  const usuarioToUpdate = await em.findOneOrFail(Usuario, { id });
-  const cambios = req.body.sanitizedInput as Record<string, unknown>;
-
-  if (cambios.password) {
-    cambios.password = await bcrypt.hash(cambios.password as string, SALT_ROUNDS);
+  const datos = Object.fromEntries(Object.entries({ name: nombre, apellido, email }).filter(([, v]) => v !== undefined));
+  if (req.usuario!.rol === 'admin') {
+    if (Object.keys(datos).length) await auth.api.adminUpdateUser({ headers, body: { userId: usuario.authUserId, data: datos } });
+    if (rol !== undefined) await auth.api.setRole({ headers, body: { userId: usuario.authUserId, role: rol } });
+  } else {
+    if (email !== undefined && email !== usuario.email) await auth.api.changeEmail({ headers, body: { newEmail: email } });
+    if (nombre !== undefined || apellido !== undefined) await auth.api.updateUser({ headers, body: { name: nombre, apellido } });
   }
-  if (cambios.rol !== undefined) {
-    if (req.usuario?.rol !== 'admin' || !ROLES_VALIDOS.includes(cambios.rol as string)) {
-      delete cambios.rol; // el rol solo lo cambia un admin, y a un valor valido
-    }
-  }
-  if (cambios.email !== undefined && cambios.email !== usuarioToUpdate.email) {
-    const existente = await em.findOne(Usuario, { email: cambios.email as string });
-    if (existente) {
-      throw new ConflictError('Ya existe un usuario con ese email');
-    }
-  }
-
-  em.assign(usuarioToUpdate, cambios);
-
+  await em.refresh(usuario);
+  em.assign(usuario, Object.fromEntries(Object.entries({ foto, direccion, telefonoCelular }).filter(([, v]) => v !== undefined)));
   await em.flush();
-  res.status(200).json({ message: 'usuario updated', data: ocultarPassword(usuarioToUpdate) });
+  res.json({ message: 'usuario actualizado', data: usuario });
 }
 
 async function remove(req: Request, res: Response) {
-  const id = parsearIdNumerico(req.params.id);
-  const usuario = await em.findOneOrFail(Usuario, { id });
-  await em.removeAndFlush(usuario);
-  res.status(200).json({ message: 'usuario eliminado' });
+  const usuario = await em.findOneOrFail(Usuario, { id: parsearIdNumerico(req.params.id) });
+  await auth.api.removeUser({ headers: fromNodeHeaders(req.headers), body: { userId: usuario.authUserId } });
+  res.json({ message: 'usuario eliminado' });
 }
 
-export { sanitizeusuarioInput, validarUsuarioCreacion, findAll, findOne, add, update, remove };
+export { sanitizeusuarioInput, validarUsuarioCreacion, findAll, findOne, me, add, update, remove };

@@ -17,9 +17,9 @@ export const config = {
     user: requireEnv('DB_USER'),
     password: requireEnv('DB_PASSWORD'),
   },
-  jwt: {
-    secret: requireEnv('JWT_SECRET'),
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
+  auth: {
+    secret: requireEnv('BETTER_AUTH_SECRET'),
+    origin: process.env.APP_ORIGIN ?? 'http://localhost:5173',
   },
   resend: {
     apiKey: process.env.RESEND_API_KEY,

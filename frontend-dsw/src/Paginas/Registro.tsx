@@ -65,8 +65,8 @@ export default function Registro() {
     if (!/^\d{7,8}$/.test(form.dni)) nuevosErrores.dni = "DNI inválido.";
     if (!/^\S+@\S+\.\S+$/.test(form.email))
       nuevosErrores.email = "Ingresá un email válido.";
-    if (form.password.length < 6)
-      nuevosErrores.password = "La contraseña debe tener al menos 6 caracteres.";
+    if (form.password.length < 8)
+      nuevosErrores.password = "La contraseña debe tener al menos 8 caracteres.";
     if (form.confirmPassword !== form.password)
       nuevosErrores.confirmPassword = "Las contraseñas no coinciden.";
     setErrors(nuevosErrores);
@@ -82,7 +82,7 @@ export default function Registro() {
     try {
       await registrar(form);
       navigate("/login", {
-        state: { mensaje: "Cuenta creada. Iniciá sesión para continuar." },
+        state: { mensaje: "Cuenta creada. Iniciá sesión para continuar.", tipoMensaje: "success" },
       });
     } catch (err) {
       setErrorApi(err instanceof Error ? err.message : "No se pudo completar el registro.");

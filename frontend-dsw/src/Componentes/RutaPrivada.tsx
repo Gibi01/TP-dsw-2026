@@ -10,8 +10,10 @@ interface Props {
 // ruta que necesita sesion. si no hay sesion manda a /registro (no a /login) y guarda
 // de donde vino para volver ahi despues
 export default function RutaPrivada({ children }: Props) {
-  const { estaAutenticado } = useAuth();
+  const { estaAutenticado, cargandoSesion } = useAuth();
   const location = useLocation();
+
+  if (cargandoSesion) return <p role="status">Cargando sesión...</p>;
 
   if (!estaAutenticado) {
     return (

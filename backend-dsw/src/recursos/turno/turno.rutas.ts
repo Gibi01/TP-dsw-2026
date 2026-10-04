@@ -15,22 +15,22 @@ import {
   marcarAsistido,
   marcarNoAsistido,
 } from './turno.controlador.js';
-import { verificarToken, autorizarRoles } from '../../shared/middlewares/auth.middleware.js';
+import { verificarSesion, autorizarRoles } from '../../shared/middlewares/auth.middleware.js';
 
 export const turnoRouter = Router();
 
-// la disponibilidad se puede ver sin estar logueado, el login hace falta recien para reservar
+// Disponibilidad: se puede explorar sin estar logueado
 turnoRouter.get('/disponibilidad', disponibilidadDoctor);
 turnoRouter.get('/disponibilidad-especialidad', disponibilidadEspecialidad);
 turnoRouter.get('/disponibilidad-mes', disponibilidadMesDoctor);
 turnoRouter.get('/disponibilidad-mes-especialidad', disponibilidadMesEspecialidad);
-
-turnoRouter.get('/mios', verificarToken, misTurnos);
-turnoRouter.get('/atiendo', verificarToken, autorizarRoles('doctor'), turnosQueAtiendo);
-turnoRouter.post('/', verificarToken, sanitizeTurnoInput, validarTurnoCreacion, add);
-turnoRouter.patch('/:id/cancelar', verificarToken, sanitizeCancelacionInput, cancelar);
-turnoRouter.patch('/:id/asistio', verificarToken, autorizarRoles('doctor'), marcarAsistido);
-turnoRouter.patch('/:id/no-asistio', verificarToken, autorizarRoles('doctor'), marcarNoAsistido);
-turnoRouter.get('/:id', verificarToken, findOne);
+// Resto de las rutas requieren autenticación
+turnoRouter.get('/mios', verificarSesion, misTurnos);
+turnoRouter.get('/atiendo', verificarSesion, autorizarRoles('doctor'), turnosQueAtiendo);
+turnoRouter.post('/', verificarSesion, sanitizeTurnoInput, validarTurnoCreacion, add);
+turnoRouter.patch('/:id/cancelar', verificarSesion, sanitizeCancelacionInput, cancelar);
+turnoRouter.patch('/:id/asistio', verificarSesion, autorizarRoles('doctor'), marcarAsistido);
+turnoRouter.patch('/:id/no-asistio', verificarSesion, autorizarRoles('doctor'), marcarNoAsistido);
+turnoRouter.get('/:id', verificarSesion, findOne);
 
 export default turnoRouter;

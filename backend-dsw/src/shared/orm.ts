@@ -15,11 +15,12 @@ export const orm = await MikroORM.init({
   user: config.db.user,
   password: config.db.password,
   highlighter: new SqlHighlighter(),
-  debug: process.env.NODE_ENV !== 'production',
+  debug: process.env.ORM_DEBUG === 'true',
   schemaGenerator: {
     disableForeignKeys: true, // asi no tira error al borrar tablas con relaciones
     createForeignKeyConstraints: true, // pero si crea las fk al generar el esquema
     ignoreSchema: [],
+    skipTables: [/^auth_/],
   },
 });
 

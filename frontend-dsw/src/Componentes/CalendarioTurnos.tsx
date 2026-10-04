@@ -67,6 +67,7 @@ export default function CalendarioTurnos({
         dia.isBefore(hoy, "day") || !fechasConTurnos.has(dia.format("YYYY-MM-DD"))
       }
       slots={{ day: DiaCalendario }}
+      slotProps={{ actionBar: { actions: [] } }}
     />
   );
 }

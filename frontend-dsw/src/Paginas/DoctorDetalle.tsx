@@ -110,8 +110,8 @@ export default function DoctorDetalle() {
 
   const elegirSlot = (slot: string) => {
     if (!estaAutenticado) {
-      navigate("/login", {
-        state: { from: location.pathname, mensaje: "Iniciá sesión para reservar un turno." },
+      navigate("/registro", {
+        state: { from: location.pathname, mensaje: "Creá una cuenta para reservar un turno." },
       });
       return;
     }
@@ -155,10 +155,10 @@ export default function DoctorDetalle() {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
         <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-          <Avatar sx={{ bgcolor: "primary.main", width: 56, height: 56 }}>
+          <Avatar src={doctor.foto ?? undefined} alt={`${doctor.nombre} ${doctor.apellido}`} sx={{ bgcolor: "primary.main", width: 56, height: 56 }}>
             <PersonIcon />
           </Avatar>
           <Box>
@@ -188,46 +188,55 @@ export default function DoctorDetalle() {
           Turnos disponibles
         </Typography>
 
-        <Box sx={{ mb: 3 }}>
-          <CalendarioTurnos
-            fecha={fecha}
-            onCambiarFecha={setFecha}
-            fechasConTurnos={fechasConTurnos}
-            onCambiarMes={cargarMesDisponible}
-          />
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "380px minmax(0, 1fr)" }, gap: 3 }}>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="h6" component="h2" gutterBottom>Elegí una fecha</Typography>
+            <CalendarioTurnos
+              fecha={fecha}
+              onCambiarFecha={setFecha}
+              fechasConTurnos={fechasConTurnos}
+              onCambiarMes={cargarMesDisponible}
+            />
+          </Box>
+          <Box sx={{ minWidth: 0, borderLeft: { md: 1 }, borderColor: { md: "divider" }, pl: { md: 3 } }}>
+            <Typography variant="h6" component="h2" gutterBottom>Horarios disponibles</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {new Date(`${fecha}T00:00:00`).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
+            </Typography>
+
+            {errorSlots && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {errorSlots}
+              </Alert>
+            )}
+
+            {loadingSlots ? (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                <CircularProgress size={28} />
+              </Box>
+            ) : slots.length === 0 ? (
+              <Alert severity="info">No hay horarios disponibles para esta fecha.</Alert>
+            ) : (
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "repeat(3, 1fr)",
+                    sm: "repeat(4, 1fr)",
+                    md: "repeat(4, 1fr)",
+                  },
+                  gap: 1.5,
+                }}
+              >
+                {slots.map((slot) => (
+                  <Button key={slot} variant="outlined" sx={{ minHeight: 56 }} onClick={() => elegirSlot(slot)}>
+                    {formatearHora(slot)}
+                  </Button>
+                ))}
+              </Box>
+            )}
+          </Box>
         </Box>
-
-        {errorSlots && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {errorSlots}
-          </Alert>
-        )}
-
-        {loadingSlots ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-            <CircularProgress size={28} />
-          </Box>
-        ) : slots.length === 0 ? (
-          <Alert severity="info">No hay horarios disponibles para esta fecha.</Alert>
-        ) : (
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "repeat(3, 1fr)",
-                sm: "repeat(4, 1fr)",
-                md: "repeat(6, 1fr)",
-              },
-              gap: "5px",
-            }}
-          >
-            {slots.map((slot) => (
-              <Button key={slot} variant="outlined" onClick={() => elegirSlot(slot)}>
-                {formatearHora(slot)}
-              </Button>
-            ))}
-          </Box>
-        )}
       </Paper>
 
       <Dialog open={slotElegido !== null} onClose={() => setSlotElegido(null)}>

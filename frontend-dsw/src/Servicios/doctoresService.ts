@@ -5,14 +5,15 @@ import type { Doctor } from "../Tipos/dominio";
 export interface FiltroDoctores {
   nombre?: string;
   especialidadId?: number;
+  conAgenda?: boolean;
 }
 
 export async function getDoctores(filtro: FiltroDoctores = {}): Promise<Doctor[]> {
   const doctores = await api
-    .get<ApiResponse<Doctor[]>>("/doctores")
+    .get<ApiResponse<Doctor[]>>(filtro.conAgenda ? "/doctores?conAgenda=true" : "/doctores")
     .then((respuesta) => respuesta.data);
 
-  // el backend todavia no filtra por nombre/especialidad, asi que filtro aca (la lista es chica, alcanza)
+
   let resultado = doctores;
 
   if (filtro.nombre && filtro.nombre.trim() !== "") {
@@ -36,7 +37,7 @@ export async function getDoctor(matricula: number): Promise<Doctor> {
   return respuesta.data;
 }
 
-// GET /doctores/mios, el doctor logueado consulta sus propios datos (matricula, etc)
+// GET /doctores/mios — el doctor logueado consulta su propio registro (matrícula, etc).
 export async function getMisDatosDeDoctor(): Promise<Doctor> {
   const respuesta = await api.get<ApiResponse<Doctor>>("/doctores/mios");
   return respuesta.data;
@@ -67,7 +68,7 @@ export async function actualizarDoctor(matricula: number, datos: EdicionDoctor):
   return respuesta.data;
 }
 
-// es baja logica, no se borra el doctor ni sus turnos, solo deja de aparecer como opcion
+// Baja lógica: el doctor no se borra (ni sus turnos), solo deja de ofrecerse como opción.
 export async function darDeBajaDoctor(matricula: number): Promise<void> {
   await api.delete(`/doctores/${matricula}`);
 }

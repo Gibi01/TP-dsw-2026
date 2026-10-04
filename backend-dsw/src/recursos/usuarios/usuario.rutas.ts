@@ -4,19 +4,21 @@ import {
   validarUsuarioCreacion,
   findAll,
   findOne,
+  me,
   add,
   update,
   remove,
 } from "./usuario.controlador.js"
-import { verificarToken, autorizarRoles } from "../../shared/middlewares/auth.middleware.js"
+import { verificarSesion, autorizarRoles } from "../../shared/middlewares/auth.middleware.js"
 
 export const usuarioRouter = Router()
 
-usuarioRouter.get('/', verificarToken, autorizarRoles('admin'), findAll);
-usuarioRouter.get('/:id', verificarToken, findOne);
+usuarioRouter.get('/', verificarSesion, autorizarRoles('admin'), findAll);
+usuarioRouter.get('/me', verificarSesion, me);
+usuarioRouter.get('/:id', verificarSesion, findOne);
 usuarioRouter.post('/', sanitizeusuarioInput, validarUsuarioCreacion, add);
-usuarioRouter.put('/:id', verificarToken, sanitizeusuarioInput, update);
-usuarioRouter.patch('/:id', verificarToken, sanitizeusuarioInput, update);
-usuarioRouter.delete('/:id', verificarToken, autorizarRoles('admin'), remove);
+usuarioRouter.put('/:id', verificarSesion, sanitizeusuarioInput, update);
+usuarioRouter.patch('/:id', verificarSesion, sanitizeusuarioInput, update);
+usuarioRouter.delete('/:id', verificarSesion, autorizarRoles('admin'), remove);
 
 export default usuarioRouter
