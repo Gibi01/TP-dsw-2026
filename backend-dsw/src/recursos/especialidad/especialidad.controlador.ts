@@ -1,16 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { Especialidad } from './especialidad.entidad.js';
 import { orm } from '../../shared/orm.js';
+import { validarIconoEspecialidad } from './iconos.js';
 import { limpiarInput, validarCamposRequeridos, parsearIdNumerico } from '../../shared/validacion.js';
 
 const em = orm.em;
 
 // idEspecialidad no viene del cliente, lo pone la base con autoincrement
-const CAMPOS = ['descripcionEsp'];
+const CAMPOS = ['descripcionEsp', 'icono'];
 const CAMPOS_REQUERIDOS = ['descripcionEsp'];
 
 function sanitizeEspecialidadInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = limpiarInput(req.body, CAMPOS);
+  validarIconoEspecialidad(req.body.sanitizedInput.icono);
   next();
 }
 
@@ -20,7 +22,8 @@ function validarEspecialidadCreacion(req: Request, res: Response, next: NextFunc
 }
 
 async function findAll(req: Request, res: Response) {
-  const especialidades = await em.find(Especialidad, {});
+  const especialidades = await em.find(Especialidad,
+    req.query.conMedicosActivos === 'true' ? { doctores: { activo: true } } : {});
   res.status(200).json({ message: 'encontradas todas las especialidades', data: especialidades });
 }
 
@@ -34,6 +37,7 @@ async function findOne(req: Request, res: Response) {
   const data = {
     idEspecialidad: especialidad.idEspecialidad,
     descripcionEsp: especialidad.descripcionEsp,
+    icono: especialidad.icono,
     // un doctor dado de baja no se muestra nunca. y nunca mandamos el Usuario completo
     // (tiene la contraseña), solo los datos publicos
     doctores: especialidad.doctores

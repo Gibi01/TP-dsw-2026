@@ -1,3 +1,4 @@
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
 // src/Paginas/Especialidades.tsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +17,8 @@ import {
   InputAdornment,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
+import IconoEspecialidad from '../Componentes/IconoEspecialidad';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import type { Especialidad } from "../Tipos/dominio";
 import { getEspecialidades } from "../Servicios/especialidadesService";
 
@@ -32,7 +34,7 @@ export default function Especialidades() {
   );
 
   useEffect(() => {
-    getEspecialidades()
+    getEspecialidades(true)
       .then(setEspecialidades)
       .catch(() => setError("No se pudieron cargar las especialidades."))
       .finally(() => setLoading(false));
@@ -44,13 +46,13 @@ export default function Especialidades() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+        <EncabezadoPagina><Typography variant="h4" component="h1" gutterBottom>
           Especialidades
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Elegí una especialidad para ver los turnos disponibles.
-        </Typography>
+        </Typography></EncabezadoPagina>
         <TextField
           fullWidth
           label="Buscar especialidad por nombre"
@@ -82,8 +84,9 @@ export default function Especialidades() {
               <Card variant="outlined">
                 <CardActionArea onClick={() => handleSelect(esp)}>
                   <CardContent sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                    <MedicalServicesIcon color="primary" />
-                    <Typography variant="subtitle1">{esp.descripcionEsp}</Typography>
+                    <IconoEspecialidad icono={esp.icono} />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, flex: 1, overflowWrap: 'anywhere' }}>{esp.descripcionEsp}</Typography>
+                    <ChevronRightIcon color="primary" />
                   </CardContent>
                 </CardActionArea>
               </Card>

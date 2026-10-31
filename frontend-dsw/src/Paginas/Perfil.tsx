@@ -155,8 +155,8 @@ export default function Perfil() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
-      <Paper variant="outlined" sx={{ p: 4 }}>
-        <Stack spacing={1} sx={{ mb: 3, alignItems: "center" }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 4 } }}>
+        <Stack spacing={1} sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: 'primary.light', alignItems: "center" }}>
           <Avatar src={perfil.foto || "/Avatar_default.jpg"} sx={{ width: 80, height: 80 }} />
           <Typography variant="h5" component="h1">
             {perfil.nombre} {perfil.apellido}

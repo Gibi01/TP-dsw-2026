@@ -1,3 +1,4 @@
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
 // src/Paginas/AdminModificarDatos.tsx
 // pagina de admin para editar/eliminar especialidades, doctores y agendas ya cargadas
 // solo entra un admin (RutaAdmin). el alta esta en AdminCargaDatos.tsx
@@ -29,6 +30,8 @@ import {
   FormControlLabel,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
+import SelectorIconoEspecialidad from '../Componentes/SelectorIconoEspecialidad';
+import IconoEspecialidad from '../Componentes/IconoEspecialidad';
 import DeleteIcon from "@mui/icons-material/Delete";
 import type { Doctor, Especialidad, MotivoCancelacion, ObraSocial } from "../Tipos/dominio";
 import {
@@ -66,6 +69,7 @@ export default function AdminModificarDatos() {
     <Container maxWidth="sm" sx={{ py: 4 }}>
       <Paper variant="outlined">
         <Box sx={{ p: 3, pb: 0 }}>
+        <EncabezadoPagina>
           <Typography variant="h4" component="h1" gutterBottom>
             Modificar datos
           </Typography>
@@ -73,6 +77,7 @@ export default function AdminModificarDatos() {
             Editá o eliminá especialidades, doctores, agendas, obras sociales y motivos de
             cancelación ya cargados.
           </Typography>
+        </EncabezadoPagina>
         </Box>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" sx={{ mt: 2 }}>
           <Tab label="Especialidad" />
@@ -100,6 +105,7 @@ function ListaEspecialidades() {
 
   const [editando, setEditando] = useState<Especialidad | null>(null);
   const [descripcion, setDescripcion] = useState("");
+  const [icono, setIcono] = useState('medicina');
   const [guardando, setGuardando] = useState(false);
   const [errorForm, setErrorForm] = useState<string | null>(null);
 
@@ -123,6 +129,7 @@ function ListaEspecialidades() {
   const abrirEdicion = (esp: Especialidad) => {
     setEditando(esp);
     setDescripcion(esp.descripcionEsp);
+    setIcono(esp.icono || 'medicina');
     setErrorForm(null);
   };
 
@@ -131,7 +138,7 @@ function ListaEspecialidades() {
     setGuardando(true);
     setErrorForm(null);
     try {
-      await actualizarEspecialidad(editando.idEspecialidad, { descripcionEsp: descripcion });
+      await actualizarEspecialidad(editando.idEspecialidad, { descripcionEsp: descripcion, icono });
       setEditando(null);
       cargar();
     } catch (err) {
@@ -171,7 +178,7 @@ function ListaEspecialidades() {
             key={esp.idEspecialidad}
             secondaryAction={
               <Stack direction="row" spacing={1}>
-                <IconButton edge="end" onClick={() => abrirEdicion(esp)}>
+                <IconButton aria-label={`Editar ${esp.descripcionEsp}`} edge="end" onClick={() => abrirEdicion(esp)}>
                   <EditIcon />
                 </IconButton>
                 <IconButton
@@ -187,7 +194,8 @@ function ListaEspecialidades() {
               </Stack>
             }
           >
-            <ListItemText primary={esp.descripcionEsp} secondary={`Id ${esp.idEspecialidad}`} />
+            <Box sx={{ mr: 2 }}><IconoEspecialidad icono={esp.icono} /></Box>
+            <ListItemText primary={esp.descripcionEsp} secondary={`Id ${esp.idEspecialidad}`} sx={{ pr: 8, overflowWrap: 'anywhere' }} />
           </ListItem>
         ))}
       </List>
@@ -207,6 +215,7 @@ function ListaEspecialidades() {
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
           />
+          <SelectorIconoEspecialidad valor={icono} onChange={setIcono} nombre={descripcion} disabled={guardando} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditando(null)}>Cancelar</Button>

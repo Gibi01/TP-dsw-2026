@@ -251,13 +251,12 @@ describe('Doctor como usuario + estados de turno', () => {
     expect(resRegistro.status).toBe(201);
     expect(resRegistro.body.data.rol).toBe('paciente');
 
-    const resLogin = await request(app)
-      .post('/api/auth/sign-in/email')
-      .send({ email: EMAIL_PACIENTE, password: '12345678' });
-    expect(resLogin.status).toBe(200);
-    expect(resLogin.headers['set-cookie'][0]).toContain('HttpOnly');
-    expect(resLogin.headers['set-cookie'][0]).toContain('Max-Age=86400');
-    cookiePaciente = resLogin.headers['set-cookie'][0].split(';')[0];
+    expect(resRegistro.headers['set-cookie'][0]).toContain('HttpOnly');
+    expect(resRegistro.headers['set-cookie'][0]).toContain('Max-Age=86400');
+    cookiePaciente = resRegistro.headers['set-cookie'][0].split(';')[0];
+    const perfil = await request(app).get('/api/usuarios/me').set('Cookie', cookiePaciente);
+    expect(perfil.status).toBe(200);
+    expect(perfil.body.data.id).toBe(resRegistro.body.data.id);
 
     const { fecha } = fechaManana();
     const resDisp = await request(app).get(`/api/turnos/disponibilidad?doctorId=${MATRICULA}&fecha=${fecha}`);

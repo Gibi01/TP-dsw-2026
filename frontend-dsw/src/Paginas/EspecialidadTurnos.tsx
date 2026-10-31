@@ -1,3 +1,8 @@
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
+import TituloSeccion from '../Componentes/TituloSeccion';
+import CalendarMonthOutlined from '@mui/icons-material/CalendarMonthOutlined';
+import AccessTimeOutlined from '@mui/icons-material/AccessTimeOutlined';
+import PersonOutline from '@mui/icons-material/PersonOutlineRounded';
 // src/Paginas/EspecialidadTurnos.tsx
 // aca se elige primero el horario disponible (de cualquier doctor de la especialidad) y
 // despues se muestra que doctor/es atienden en ese horario para terminar de elegir
@@ -11,14 +16,8 @@ import {
   Stack,
   CircularProgress,
   Alert,
-  MenuItem,
-  TextField,
   Button,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   List,
   ListItemButton,
   ListItemText,
@@ -34,7 +33,9 @@ import {
 import { getObrasSociales } from "../Servicios/obraSocialService";
 import { useAuth } from "../Contextos/AuthContext";
 import { formatearHora, formatearFechaHora } from "../Servicios/formatoFechaHora";
+import ConfirmacionTurno from "../Componentes/ConfirmacionTurno";
 import CalendarioTurnos from "../Componentes/CalendarioTurnos";
+import { guardarReservaPendiente, leerReservaPendiente, borrarReservaPendiente } from '../Servicios/reservaPendiente';
 
 function hoyISO(): string {
   const hoy = new Date();
@@ -49,7 +50,7 @@ export default function EspecialidadTurnos() {
   const location = useLocation();
   const { estaAutenticado } = useAuth();
 
-  const [fecha, setFecha] = useState(hoyISO());
+  const [fecha, setFecha] = useState(() => leerReservaPendiente(location.pathname)?.fecha ?? hoyISO());
   const [fechasConTurnos, setFechasConTurnos] = useState<Set<string>>(new Set());
   const [slots, setSlots] = useState<SlotEspecialidad[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,19 +63,38 @@ export default function EspecialidadTurnos() {
   const [horarioElegido, setHorarioElegido] = useState<string | null>(null);
   const [doctorElegido, setDoctorElegido] = useState<SlotEspecialidad["doctor"] | null>(null);
   const [reservando, setReservando] = useState(false);
+  const [confirmado, setConfirmado] = useState(false);
   const [errorReserva, setErrorReserva] = useState<string | null>(null);
 
   useEffect(() => {
     if (!idEspecialidad) return;
+    let cancelado = false;
+    setHorarioElegido(null);
+    setDoctorElegido(null);
     setLoading(true);
     setError(null);
     getDisponibilidadEspecialidad(idEspecialidad, fecha)
-      .then(setSlots)
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : "No se pudo obtener la disponibilidad.")
-      )
-      .finally(() => setLoading(false));
-  }, [idEspecialidad, fecha]);
+      .then((disponibles) => {
+        if (cancelado) return;
+        setSlots(disponibles);
+        const pendiente = leerReservaPendiente(location.pathname);
+        if (!estaAutenticado || !pendiente || pendiente.fecha !== fecha) return;
+        const elegido = disponibles.find(slot => slot.fechaHoraTurno === pendiente.horario && slot.doctor.matricula === pendiente.doctorId);
+        if (elegido && Date.parse(pendiente.horario) > Date.now()) {
+          setHorarioElegido(pendiente.horario);
+          setDoctorElegido(elegido.doctor);
+          setObraSocialId(pendiente.obraSocialId);
+        } else {
+          borrarReservaPendiente();
+          setError('El horario que elegiste ya no está disponible. Elegí otro horario.');
+        }
+      })
+      .catch((err) => {
+        if (!cancelado) setError(err instanceof Error ? err.message : "No se pudo obtener la disponibilidad.");
+      })
+      .finally(() => { if (!cancelado) setLoading(false); });
+    return () => { cancelado = true; };
+  }, [idEspecialidad, fecha, estaAutenticado, location.pathname]);
 
   useEffect(() => {
     setCargandoObrasSociales(true);
@@ -105,12 +125,15 @@ export default function EspecialidadTurnos() {
   }, [slots]);
 
   const elegirHorario = (horario: string) => {
+    borrarReservaPendiente();
     setHorarioElegido(horario);
     setDoctorElegido(null);
     setErrorReserva(null);
   };
 
   const elegirDoctor = (doctor: SlotEspecialidad["doctor"]) => {
+    if (!horarioElegido) return;
+    guardarReservaPendiente({ ruta: location.pathname, fecha, doctorId: doctor.matricula, horario: horarioElegido, obraSocialId: '' });
     if (!estaAutenticado) {
       navigate("/registro", {
         state: { from: location.pathname, mensaje: "Creá una cuenta para reservar un turno." },
@@ -123,7 +146,8 @@ export default function EspecialidadTurnos() {
   };
 
   const confirmarReserva = async () => {
-    if (!horarioElegido || !doctorElegido || obraSocialId === "") return;
+    if (!horarioElegido || !doctorElegido || obraSocialId === "" || reservando || confirmado) return;
+    guardarReservaPendiente({ ruta: location.pathname, fecha, doctorId: doctorElegido.matricula, horario: horarioElegido, obraSocialId });
     setReservando(true);
     setErrorReserva(null);
     try {
@@ -132,7 +156,8 @@ export default function EspecialidadTurnos() {
         horarioElegido,
         obraSocialId === "sin-obra-social" ? null : obraSocialId
       );
-      navigate("/mis-turnos");
+      borrarReservaPendiente();
+      setConfirmado(true);
     } catch (err) {
       setErrorReserva(err instanceof Error ? err.message : "No se pudo reservar el turno.");
     } finally {
@@ -142,26 +167,28 @@ export default function EspecialidadTurnos() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+        <EncabezadoPagina>
         <Typography variant="h4" component="h1" gutterBottom>
           Turnos disponibles
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Elegí un horario y después con qué doctor querés atenderte.
         </Typography>
+        </EncabezadoPagina>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "380px minmax(0, 1fr)" }, gap: 3 }}>
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h6" component="h2" gutterBottom>Elegí una fecha</Typography>
+            <TituloSeccion icono={<CalendarMonthOutlined />}>Elegí una fecha</TituloSeccion>
             <CalendarioTurnos
               fecha={fecha}
-              onCambiarFecha={setFecha}
+              onCambiarFecha={(nuevaFecha) => { borrarReservaPendiente(); setFecha(nuevaFecha); }}
               fechasConTurnos={fechasConTurnos}
               onCambiarMes={cargarMesDisponible}
             />
           </Box>
           <Box sx={{ minWidth: 0, borderLeft: { md: 1 }, borderColor: { md: "divider" }, pl: { md: 3 } }}>
-            <Typography variant="h6" component="h2" gutterBottom>Horarios disponibles</Typography>
+            <TituloSeccion icono={<AccessTimeOutlined />}>Horarios disponibles</TituloSeccion>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {new Date(`${fecha}T00:00:00`).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
             </Typography>
@@ -192,104 +219,60 @@ export default function EspecialidadTurnos() {
                   }}
                 >
                   {horarios.map(([horario, doctores]) => (
-                    <Button key={horario} variant="outlined" sx={{ minHeight: 56 }} onClick={() => elegirHorario(horario)}>
+                    <Button key={horario} variant={horarioElegido === horario ? "contained" : "outlined"} aria-pressed={horarioElegido === horario} sx={{ minHeight: 56 }} onClick={() => elegirHorario(horario)}>
                       {formatearHora(horario)}
                       {doctores.length > 1 ? ` (${doctores.length})` : ""}
                     </Button>
                   ))}
                 </Box>
-                <Alert severity="info" sx={{ mt: 3 }}>Seleccioná un horario para ver los doctores disponibles.</Alert>
+                {horarioElegido ? (
+                  <Box component="section" aria-labelledby="doctores-disponibles" sx={{ mt: 3, borderTop: 1, borderColor: "divider", pt: 3 }}>
+                    <TituloSeccion id="doctores-disponibles" icono={<PersonOutline />}>
+                      Elegí el doctor
+                    </TituloSeccion>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Horario: {formatearFechaHora(horarioElegido)}
+                    </Typography>
+                    <List component="div" disablePadding>
+                      {(horarios.find(([h]) => h === horarioElegido)?.[1] ?? []).map((doctor) => (
+                        <ListItemButton component="button" key={doctor.matricula} onClick={() => elegirDoctor(doctor)} sx={{ width: "100%", textAlign: "left", border: 1, borderColor: "divider", borderRadius: 1, mb: 1 }}>
+                          <Avatar src={doctor.foto ?? undefined} alt={`${doctor.nombre} ${doctor.apellido}`} sx={{ bgcolor: "primary.main", mr: 2 }}>
+                            <PersonIcon />
+                          </Avatar>
+                          <ListItemText
+                            primary={`Dr./Dra. ${doctor.nombre} ${doctor.apellido}`}
+                            slotProps={{ secondary: { component: "div" } }}
+                            secondary={
+                              <Stack direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: "wrap" }}>
+                                {doctor.especialidades?.map((esp) => (
+                                  <Chip key={esp.idEspecialidad} label={esp.descripcionEsp} size="small" />
+                                ))}
+                              </Stack>
+                            }
+                          />
+                        </ListItemButton>
+                      ))}
+                    </List>
+                  </Box>
+                ) : (
+                  <Alert severity="info" sx={{ mt: 3 }}>Seleccioná un horario para ver los doctores disponibles.</Alert>
+                )}
               </Box>
             )}
           </Box>
         </Box>
       </Paper>
 
-      <Dialog open={horarioElegido !== null} onClose={() => setHorarioElegido(null)} fullWidth maxWidth="xs">
-        <DialogTitle>Elegí el doctor</DialogTitle>
-        <DialogContent>
-          {horarioElegido && (
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Horario: {formatearFechaHora(horarioElegido)}
-            </Typography>
-          )}
-          <List>
-            {(horarios.find(([h]) => h === horarioElegido)?.[1] ?? []).map((doctor) => (
-              <ListItemButton key={doctor.matricula} onClick={() => elegirDoctor(doctor)}>
-                <Avatar src={doctor.foto ?? undefined} alt={`${doctor.nombre} ${doctor.apellido}`} sx={{ bgcolor: "primary.main", mr: 2 }}>
-                  <PersonIcon />
-                </Avatar>
-                <ListItemText
-                  primary={`Dr./Dra. ${doctor.nombre} ${doctor.apellido}`}
-                  slotProps={{ secondary: { component: "div" } }}
-                  secondary={
-                    <Stack direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: "wrap" }}>
-                      {doctor.especialidades?.map((esp) => (
-                        <Chip key={esp.idEspecialidad} label={esp.descripcionEsp} size="small" />
-                      ))}
-                    </Stack>
-                  }
-                />
-              </ListItemButton>
-            ))}
-          </List>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setHorarioElegido(null)}>Volver</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={doctorElegido !== null} onClose={() => setDoctorElegido(null)}>
-        <DialogTitle>Confirmar turno</DialogTitle>
-        <DialogContent>
-          {errorReserva && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {errorReserva}
-            </Alert>
-          )}
-          {doctorElegido && horarioElegido && (
-            <Typography sx={{ mb: 2 }}>
-              Turno con Dr./Dra. {doctorElegido.nombre} {doctorElegido.apellido} el{" "}
-              {formatearFechaHora(horarioElegido)}.
-            </Typography>
-          )}
-          {cargandoObrasSociales && <CircularProgress size={24} />}
-          {!cargandoObrasSociales && (
-            <TextField
-              select
-              fullWidth
-              label="Obra social a usar en este turno"
-              value={obraSocialId}
-              onChange={(e) => {
-                const valor = e.target.value;
-                setObraSocialId(
-                  valor === "" || valor === "sin-obra-social" ? valor : Number(valor)
-                );
-              }}
-            >
-              <MenuItem value="" disabled>
-                Elegí una opción
-              </MenuItem>
-              <MenuItem value="sin-obra-social">Sin obra social</MenuItem>
-              {obrasSociales.map((os) => (
-                <MenuItem key={os.id} value={os.id}>
-                  {os.nombre}
-                </MenuItem>
-              ))}
-            </TextField>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDoctorElegido(null)}>Cancelar</Button>
-          <Button
-            variant="contained"
-            onClick={confirmarReserva}
-            disabled={reservando || cargandoObrasSociales || obraSocialId === ""}
-          >
-            {reservando ? <CircularProgress size={20} color="inherit" /> : "Confirmar"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {doctorElegido && horarioElegido && <ConfirmacionTurno
+        doctor={doctorElegido} horario={horarioElegido} obrasSociales={obrasSociales} obraSocialId={obraSocialId}
+        cargandoObrasSociales={cargandoObrasSociales} reservando={reservando} confirmado={confirmado} error={errorReserva}
+        onObraSocial={(seleccion) => {
+          setObraSocialId(seleccion);
+          guardarReservaPendiente({ ruta: location.pathname, fecha, doctorId: doctorElegido.matricula, horario: horarioElegido, obraSocialId: seleccion });
+        }}
+        onConfirmar={confirmarReserva}
+        onCancelar={() => { borrarReservaPendiente(); setDoctorElegido(null); }}
+      />}
     </Container>
   );
 }

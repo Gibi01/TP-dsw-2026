@@ -1,3 +1,4 @@
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
 // src/Paginas/MiAgenda.tsx
 // aca el doctor logueado maneja su agenda (bloques semanales recurrentes)
 // esto no toca turnos ya reservados, solo los bloques que definen que horarios se ofrecen
@@ -78,12 +79,14 @@ export default function MiAgenda() {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <EncabezadoPagina>
         <Typography variant="h4" component="h1" gutterBottom>
           Mi agenda
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Dr./Dra. {doctor.nombre} {doctor.apellido} — Matrícula {doctor.matricula}
         </Typography>
+        </EncabezadoPagina>
       </Paper>
 
       <Paper variant="outlined" sx={{ p: 3 }}>

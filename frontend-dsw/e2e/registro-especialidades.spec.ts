@@ -4,10 +4,18 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/auth/get-session', (route) => route.fulfill({ json: null }));
 });
 
-test('el registro exitoso muestra la confirmación en verde en el login', async ({ page }) => {
-  await page.route('**/api/usuarios', (route) => route.fulfill({ json: { data: {
-    id: 1, nombre: 'Ana', apellido: 'Test', email: 'ana@test.com', rol: 'paciente',
-  } } }));
+test('el registro exitoso inicia sesión sin pedir otro login', async ({ page }) => {
+  let autenticado = false;
+  const perfil = { id: 1, nombre: 'Ana', apellido: 'Test', email: 'ana@test.com', rol: 'paciente' };
+  await page.route('**/api/auth/get-session', route => route.fulfill({ json: autenticado ? {
+    user: { id: 'ana', name: 'Ana', email: perfil.email },
+    session: { id: 'sesion', userId: 'ana', expiresAt: new Date(Date.now() + 86400000).toISOString() },
+  } : null }));
+  await page.route('**/api/usuarios/me', route => route.fulfill({ json: { data: perfil } }));
+  await page.route('**/api/usuarios', (route) => {
+    autenticado = true;
+    return route.fulfill({ json: { data: perfil } });
+  });
   await page.goto('/registro');
   await page.getByLabel('Nombre', { exact: true }).fill('Ana');
   await page.getByLabel('Apellido', { exact: true }).fill('Test');
@@ -16,19 +24,21 @@ test('el registro exitoso muestra la confirmación en verde en el login', async 
   await page.getByLabel('Contraseña', { exact: true }).fill('12345678');
   await page.getByLabel('Confirmar contraseña', { exact: true }).fill('12345678');
   await page.getByRole('button', { name: 'Registrarme', exact: true }).click();
-  await expect(page).toHaveURL(/\/login$/);
-  const confirmacion = page.getByRole('alert').filter({ hasText: 'Cuenta creada. Iniciá sesión para continuar.' });
-  await expect(confirmacion).toBeVisible();
-  await expect(confirmacion).toHaveClass(/MuiAlert-colorSuccess/);
+  await expect(page).toHaveURL('http://localhost:5173/');
+  await expect(page.getByRole('img', { name: 'Ana Test' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('img', { name: 'Ana Test' })).toBeVisible();
 });
 
 test('busca especialidades sin distinguir mayúsculas ni tildes y permite elegir un resultado', async ({ page }) => {
-  await page.route('**/api/especialidades', (route) => route.fulfill({ json: { data: [
+  await page.route('**/api/especialidades{,?conMedicosActivos=true}', (route) => route.fulfill({ json: { data: [
     { idEspecialidad: 1, descripcionEsp: 'Clínica médica' },
     { idEspecialidad: 2, descripcionEsp: 'Traumatología' },
     { idEspecialidad: 3, descripcionEsp: 'Cardiología' },
   ] } }));
+  const solicitud = page.waitForRequest(req => req.url().includes('/api/especialidades?conMedicosActivos=true'));
   await page.goto('/reserva');
+  await solicitud;
   const busqueda = page.getByRole('textbox', { name: 'Buscar especialidad por nombre' });
   await busqueda.fill('  CLINICA  ');
   await expect(page.getByRole('button', { name: 'Clínica médica', exact: true })).toBeVisible();

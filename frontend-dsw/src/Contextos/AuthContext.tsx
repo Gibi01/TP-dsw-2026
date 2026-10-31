@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { borrarReservaPendiente } from '../Servicios/reservaPendiente';
 import type { UsuarioSesion } from '../Tipos/dominio';
 import { authClient } from '../Servicios/authClient';
 import { obtenerSesion } from '../Servicios/authService';
@@ -18,8 +19,9 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
   const [cargandoPerfil, setCargandoPerfil] = useState(true);
-  const { data: sesion, isPending } = authClient.useSession();
+  const { data: sesion, isPending, refetch } = authClient.useSession();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Retira los datos de la autenticación anterior; no se guardan nuevas credenciales aquí.
@@ -49,22 +51,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     function manejarSesionVencida() {
       setUsuario(null);
-      navigate('/login', { replace: true, state: { mensaje: 'Tu sesión expiró. Iniciá sesión de nuevo.' } });
+      navigate('/login', { replace: true, state: { from: location.pathname, mensaje: 'Tu sesión expiró. Iniciá sesión de nuevo.' } });
     }
     window.addEventListener('auth:sesion-vencida', manejarSesionVencida);
     return () => window.removeEventListener('auth:sesion-vencida', manejarSesionVencida);
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   const cerrarSesion = async () => {
     const { error } = await authClient.signOut();
     if (error) throw new Error(error.message ?? 'No se pudo cerrar la sesión');
+    borrarReservaPendiente();
     setUsuario(null);
   };
 
   return <AuthContext.Provider value={{
     usuario, estaAutenticado: usuario !== null,
     cargandoSesion: isPending || cargandoPerfil,
-    guardarSesion: setUsuario,
+    guardarSesion: (perfil) => { setUsuario(perfil); void refetch(); },
     actualizarUsuario: (parcial) => setUsuario((prev) => prev ? { ...prev, ...parcial } : null),
     cerrarSesion,
   }}>{children}</AuthContext.Provider>;

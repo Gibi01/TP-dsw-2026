@@ -1,3 +1,4 @@
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
 // src/Paginas/Login.tsx
 import { useState, type FormEvent } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
@@ -19,6 +20,7 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import type { LoginForm } from "../Tipos/dominio";
 import { login } from "../Servicios/authService";
 import { useAuth } from "../Contextos/AuthContext";
+import { destinoTrasAutenticacion } from '../Servicios/reservaPendiente';
 
 const initialForm: LoginForm = { email: "", password: "" };
 
@@ -63,7 +65,7 @@ export default function Login() {
     try {
       const usuario = await login(form);
       guardarSesion(usuario);
-      navigate("/", { replace: true });
+      navigate(destinoTrasAutenticacion(state.from), { replace: true });
     } catch (err) {
       setErrorApi(err instanceof Error ? err.message : "No se pudo iniciar sesión.");
     } finally {
@@ -73,10 +75,12 @@ export default function Login() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
-      <Paper variant="outlined" sx={{ p: 4 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 4 } }}>
+        <EncabezadoPagina>
         <Typography variant="h4" component="h1" gutterBottom>
           Iniciar sesión
         </Typography>
+        </EncabezadoPagina>
 
         {state.mensaje && (
           <Alert severity={state.tipoMensaje ?? "info"} sx={{ mb: 2 }}>
@@ -146,7 +150,7 @@ export default function Login() {
 
           <Typography variant="body2" sx={{ mt: 1, textAlign: "center" }}>
             ¿No tenés cuenta?{" "}
-            <Link component={RouterLink} to="/registro">
+            <Link component={RouterLink} to="/registro" state={{ from: state.from }}>
               Registrate
             </Link>
           </Typography>

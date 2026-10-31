@@ -28,7 +28,7 @@ export const auth = betterAuth({
   basePath: '/api/auth',
   trustedOrigins: [config.auth.origin],
   database: authPool,
-  emailAndPassword: { enabled: true, autoSignIn: false, minPasswordLength: 8 },
+  emailAndPassword: { enabled: true, autoSignIn: true, minPasswordLength: 8 },
   user: {
     modelName: 'auth_user',
     changeEmail: { enabled: true, updateEmailWithoutVerification: true },

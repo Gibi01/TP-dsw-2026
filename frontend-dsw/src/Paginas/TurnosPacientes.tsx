@@ -1,3 +1,4 @@
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
 // src/Paginas/TurnosPacientes.tsx
 // vista del doctor logueado como "atiende a", los turnos pendientes que tiene que atender
 // la agenda propia se maneja aparte, en MiAgenda.tsx
@@ -75,12 +76,14 @@ export default function TurnosPacientes() {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <EncabezadoPagina>
         <Typography variant="h4" component="h1" gutterBottom>
           Turnos con pacientes
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Dr./Dra. {doctor.nombre} {doctor.apellido} — Matrícula {doctor.matricula}
         </Typography>
+        </EncabezadoPagina>
       </Paper>
 
       <Paper variant="outlined" sx={{ p: 3 }}>

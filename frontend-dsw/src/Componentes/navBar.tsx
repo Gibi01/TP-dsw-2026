@@ -63,6 +63,7 @@ function construirPaginas(usuario: UsuarioSesion | null): PaginaNav[] {
       { text: "Mis turnos", path: "/mis-turnos" },
       { text: "Cargar datos", path: "/admin/carga" },
       { text: "Modificar datos", path: "/admin/modificar" },
+      { text: "Ver usuarios", path: "/admin/usuarios" },
     ];
   }
 
@@ -87,7 +88,7 @@ function NavSubmenu({
     <>
       <Button
         onClick={(e) => setAnchorEl(e.currentTarget)}
-        sx={{ my: 2, color: 'white', display: 'block' }}
+        sx={{ color: 'white', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 48 }}
         endIcon={<ArrowDropDownIcon />}
       >
         {pagina.text}
@@ -151,10 +152,10 @@ function ResponsiveAppBar() {
   };
 
   return (
-    <AppBar position="sticky" sx={{ backgroundColor: "#8d6700", top: 0 }}>
+    <AppBar position="sticky" sx={{ backgroundColor: 'primary.main', top: 0 }}>
       <Container maxWidth="xl" >
-        <Toolbar disableGutters>
-          <LocalHospitalIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1}} />
+        <Toolbar disableGutters sx={{ minHeight: { xs: 64, lg: 80 }, gap: 1, alignItems: 'center' }}>
+          <LocalHospitalIcon sx={{ display: { xs: 'none', lg: 'flex' }, mr: 1}} />
           <Typography
             variant="h6"
             noWrap
@@ -162,7 +163,7 @@ function ResponsiveAppBar() {
             to="/"
             sx={{
               mr: 2,
-              display: { xs: 'none', md: 'flex' },
+              display: { xs: 'none', lg: 'flex' },
               fontFamily: 'monospace',
               fontWeight: 700,
               letterSpacing: '.3rem',
@@ -173,10 +174,10 @@ function ResponsiveAppBar() {
             HOSPITAL RIPPER
           </Typography>
             
-          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }} >
+          <Box sx={{ width: 44, flexShrink: 0, display: { xs: 'flex', lg: 'none' }, justifyContent: 'center' }} >
             <IconButton
               size="large"
-              aria-label="account of current user"
+              aria-label="Abrir menú de navegación"
               aria-controls="menu-appbar"
               aria-haspopup="true"
               onClick={handleOpenNavMenu}
@@ -198,7 +199,7 @@ function ResponsiveAppBar() {
               }}
               open={Boolean(anchorElNav)}
               onClose={handleCloseNavMenu}
-              sx={{ display: { xs: 'block', md: 'none' } }}
+              sx={{ display: { xs: 'block', lg: 'none' } }}
             >
               {pages.flatMap((page) =>
                 esSubmenu(page)
@@ -215,26 +216,30 @@ function ResponsiveAppBar() {
               )}
             </Menu>
           </Box>
-          <LocalHospitalIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} />
           <Typography
             variant="h5"
             noWrap
             component={RouterLink}
             to="/"
             sx={{
-              mr: 2,
-              display: { xs: 'flex', md: 'none' },
+              display: { xs: 'flex', lg: 'none' },
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 0.5,
               flexGrow: 1,
-              fontFamily: 'monospace',
+              minWidth: 0,
+              fontSize: { xs: '0.875rem', sm: '1.125rem' },
+              fontFamily: 'inherit',
               fontWeight: 700,
-              letterSpacing: '.3rem',
+              letterSpacing: '.02em',
               color: 'inherit',
               textDecoration: 'none',
             }}
           >
+            <LocalHospitalIcon sx={{ fontSize: 20 }} />
             HOSPITAL RIPPER
           </Typography>
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+          <Box component="nav" aria-label="Navegación principal" sx={{ flexGrow: 1, display: { xs: 'none', lg: 'flex' }, alignItems: 'center', justifyContent: 'center' }}>
             {pages.map((page) =>
               esSubmenu(page) ? (
                 <NavSubmenu key={page.text} pagina={page} onNavigate={handleNavigateTo} />
@@ -244,14 +249,14 @@ function ResponsiveAppBar() {
                   component={RouterLink}
                   to={page.path}
                   onClick={handleCloseNavMenu}
-                  sx={{ my: 2, color: 'white', display: 'block' }}
+                  sx={{ color: 'white', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 48 }}
                 >
                   {page.text}
                 </Button>
               )
             )}
           </Box>
-          <Box sx={{ flexGrow: 0 }}>
+          <Box sx={{ width: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Tooltip title={estaAutenticado ? `${usuario!.nombre} ${usuario!.apellido}` : "Iniciar sesión"}>
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
                 <Avatar
@@ -262,7 +267,7 @@ function ResponsiveAppBar() {
             </Tooltip>
             <Menu
               sx={{ mt: '45px' }}
-              id="menu-appbar"
+              id="menu-usuario"
               anchorEl={anchorElUser}
               anchorOrigin={{
                 vertical: 'top',

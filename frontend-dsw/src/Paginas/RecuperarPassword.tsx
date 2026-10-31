@@ -1,3 +1,4 @@
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
 // src/Paginas/RecuperarPassword.tsx
 // placeholder, todavia no hay servicio de mail. solo valida el email y muestra
 // la confirmacion pero no manda nada de verdad (ver el TODO abajo)
@@ -25,13 +26,15 @@ export default function RecuperarPassword() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
-      <Paper variant="outlined" sx={{ p: 4 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 4 } }}>
+        <EncabezadoPagina>
         <Typography variant="h4" component="h1" gutterBottom>
           Recuperar contraseña
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Ingresá tu email y te vamos a enviar instrucciones para recuperar tu contraseña.
         </Typography>
+        </EncabezadoPagina>
 
         {enviado ? (
           <Alert severity="success">

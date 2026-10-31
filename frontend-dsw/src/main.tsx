@@ -9,18 +9,23 @@ import "./main.css";
 import App from "./App.tsx";
 import ResponsiveAppBar from "./Componentes/navBar";
 import { AuthProvider } from "./Contextos/AuthContext";
+import { CssBaseline, ThemeProvider } from '@mui/material';
+import { tema } from './tema';
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    <ThemeProvider theme={tema}>
+    <CssBaseline />
     <BrowserRouter>
       <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
         <AuthProvider>
           <ResponsiveAppBar />
-          <div className="min-h-screen bg-[url('/raiden-medico-1920x1080.jpg')] bg-cover bg-center bg-fixed">
+          <main style={{ minHeight: 'calc(100dvh - 64px)' }}>
             <App />
-          </div>
+          </main>
         </AuthProvider>
       </LocalizationProvider>
     </BrowserRouter>
+    </ThemeProvider>
   </StrictMode>
 );

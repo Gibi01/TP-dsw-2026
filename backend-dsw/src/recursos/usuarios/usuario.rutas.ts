@@ -3,6 +3,7 @@ import {
   sanitizeusuarioInput,
   validarUsuarioCreacion,
   findAll,
+  listado,
   findOne,
   me,
   add,
@@ -15,6 +16,7 @@ export const usuarioRouter = Router()
 
 usuarioRouter.get('/', verificarSesion, autorizarRoles('admin'), findAll);
 usuarioRouter.get('/me', verificarSesion, me);
+usuarioRouter.get('/listado', verificarSesion, autorizarRoles('admin'), listado);
 usuarioRouter.get('/:id', verificarSesion, findOne);
 usuarioRouter.post('/', sanitizeusuarioInput, validarUsuarioCreacion, add);
 usuarioRouter.put('/:id', verificarSesion, sanitizeusuarioInput, update);

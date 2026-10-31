@@ -1,3 +1,4 @@
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
 // src/Paginas/MisTurnos.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -40,9 +41,9 @@ const ETIQUETA_ESTADO: Record<EstadoTurno, string> = {
 };
 
 const COLOR_ESTADO: Record<EstadoTurno, "success" | "default" | "info" | "warning"> = {
-  pendiente: "success",
+  pendiente: "info",
   cancelado: "default",
-  asistido: "info",
+  asistido: "success",
   no_asistido: "warning",
 };
 
@@ -129,16 +130,24 @@ export default function MisTurnos() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+        <EncabezadoPagina><Typography variant="h4" component="h1" gutterBottom>
           Mis turnos
         </Typography>
 
         <Typography color="text.secondary" sx={{ mb: 3 }}>
           Consultá tus próximos turnos y tu historial.
-        </Typography>
+        </Typography></EncabezadoPagina>
         <Stack direction={{ xs: "column", md: "row" }} spacing={3} sx={{ justifyContent: "space-between" }}>
-          <Box sx={{ minWidth: 0 }}>
+          <TextField select label="Estado" value={estadoFiltro} sx={{ display: { xs: 'flex', md: 'none' } }}
+            onChange={e => setEstadoFiltro(e.target.value as EstadoTurno | 'todos')}>
+            <MenuItem value="todos">Todos</MenuItem>
+            <MenuItem value="pendiente">Pendientes</MenuItem>
+            <MenuItem value="cancelado">Cancelados</MenuItem>
+            <MenuItem value="asistido">Asistidos</MenuItem>
+            <MenuItem value="no_asistido">No asistidos</MenuItem>
+          </TextField>
+          <Box sx={{ minWidth: 0, display: { xs: 'none', md: 'block' } }}>
             <Typography id="filtro-estado-label" sx={{ mb: 1 }}>Estado</Typography>
             <ToggleButtonGroup
               exclusive
@@ -187,19 +196,19 @@ export default function MisTurnos() {
           <Typography sx={{ px: 3, py: 2 }} color="text.secondary" aria-live="polite">
             {turnosVisibles.length} {turnosVisibles.length === 1 ? "turno" : "turnos"}
           </Typography>
-          <Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: "180px minmax(0, 1fr) 170px 130px 150px", gap: 2, px: 3, py: 2, bgcolor: "grey.100", borderBottom: 1, borderColor: "divider" }}>
+          <Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: "180px minmax(0, 1fr) 170px 130px 150px", gap: 2, px: 3, py: 2, bgcolor: "primary.light", borderBottom: 1, borderColor: "divider", '& p': { fontWeight: 600 } }}>
             <Typography>Fecha y hora</Typography>
             <Typography>Doctor / Especialidad</Typography>
             <Typography>Obra social</Typography>
             <Typography>Estado</Typography>
             <Typography>Acciones</Typography>
           </Box>
-          <Box component="ul" aria-label="Listado de turnos" sx={{ listStyle: "none", p: 0, m: 0 }}>
+          <Box component="ul" aria-label="Listado de turnos" sx={{ listStyle: "none", p: { xs: 2, md: 0 }, m: 0 }}>
           {turnosVisibles.map((turno, indice) => (
-            <Card component="li" key={turno.id} variant="outlined" sx={{ border: 0, borderRadius: 0, borderBottom: 1, borderColor: "divider", bgcolor: indice % 2 === 0 ? "background.paper" : "grey.50", "&:last-child": { borderBottom: 0 } }}>
+            <Card component="li" key={turno.id} variant="outlined" sx={{ borderWidth: { xs: 1, md: 0 }, borderStyle: 'solid', borderRadius: { xs: 2, md: 0 }, mb: { xs: 2, md: 0 }, borderBottomWidth: 1, borderColor: "divider", bgcolor: { xs: 'background.paper', md: indice % 2 === 0 ? "background.paper" : "grey.50" } }}>
               <CardContent sx={{ p: 3, "&:last-child": { pb: 3 } }}>
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "180px minmax(0, 1fr) 170px 130px 150px" }, gap: 2, alignItems: "center" }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700, fontSize: { xs: '1.125rem', md: '0.875rem' } }}>
                     {formatearFechaHora(turno.fechaHoraTurno)}
                   </Typography>
                   <Box>
@@ -219,6 +228,7 @@ export default function MisTurnos() {
                     </Stack>
                   </Box>
                   <Typography variant="body2" color="text.secondary">
+                    <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>Obra social: </Box>
                     {turno.obraSocial?.nombre ?? "Sin obra social"}
                   </Typography>
                   <Chip label={ETIQUETA_ESTADO[turno.estado]} color={COLOR_ESTADO[turno.estado]} sx={{ justifySelf: "start" }} />

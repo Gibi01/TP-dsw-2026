@@ -2,14 +2,16 @@
 import { api, type ApiResponse } from "./api";
 import type { Especialidad } from "../Tipos/dominio";
 
-export async function getEspecialidades(): Promise<Especialidad[]> {
-  const respuesta = await api.get<ApiResponse<Especialidad[]>>("/especialidades");
+export async function getEspecialidades(conMedicosActivos = false): Promise<Especialidad[]> {
+  const respuesta = await api.get<ApiResponse<Especialidad[]>>(
+    conMedicosActivos ? "/especialidades?conMedicosActivos=true" : "/especialidades"
+  );
   return respuesta.data;
 }
 
 // idEspecialidad lo pone el backend solo (autoincrement), nunca se manda desde el front
 export async function crearEspecialidad(
-  datos: Pick<Especialidad, "descripcionEsp">
+  datos: Pick<Especialidad, "descripcionEsp" | "icono">
 ): Promise<Especialidad> {
   const respuesta = await api.post<ApiResponse<Especialidad>>("/especialidades", datos);
   return respuesta.data;
@@ -17,7 +19,7 @@ export async function crearEspecialidad(
 
 export async function actualizarEspecialidad(
   idEspecialidad: number,
-  datos: Partial<Pick<Especialidad, "descripcionEsp">>
+  datos: Partial<Pick<Especialidad, "descripcionEsp" | "icono">>
 ): Promise<Especialidad> {
   const respuesta = await api.patch<ApiResponse<Especialidad>>(
     `/especialidades/${idEspecialidad}`,

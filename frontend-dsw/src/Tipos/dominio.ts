@@ -4,6 +4,7 @@
 export interface Especialidad {
   idEspecialidad: number;
   descripcionEsp: string;
+  icono?: string;
 }
 
 export interface Doctor {

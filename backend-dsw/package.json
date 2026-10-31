@@ -4,6 +4,8 @@
   "type": "module",
   "main": "app.js",
   "scripts": {
+    "db:especialidades": "pnpm build && node dist/shared/cargar-especialidades.js",
+    "db:iconos": "pnpm build && node dist/shared/agregar-iconos-especialidades.js",
     "build": "tsc -p ./tsconfig.json",
     "db:prepare": "pnpm build && node dist/shared/preparar-db.js",
     "db:reset": "pnpm build && node dist/shared/preparar-db.js --reset",

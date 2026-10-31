@@ -42,13 +42,16 @@ test('filtra estados, ordena fechas y conserva la cancelación del turno selecci
   expect(idCancelado).toContain('/turnos/2/cancelar');
 });
 
-test('mantiene el filtro desde Inicio y la navbar visible al desplazarse en móvil', async ({ page }) => {
+test('mantiene el filtro desde Inicio y la navbar visible al desplazarse en móvil', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 600 });
   await page.goto('/mis-turnos?pendientes=1');
-  await expect(page.getByRole('button', { name: 'Pendientes', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('combobox', { name: 'Estado', exact: true })).toHaveText('Pendientes');
   await expect(page.getByRole('listitem')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Todos', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Estado', exact: true }).click();
+  await page.getByRole('option', { name: 'Todos', exact: true }).click();
   await expect(page.getByRole('listitem')).toHaveCount(3);
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('mis-turnos-mobile.png'), fullPage: true, animations: 'disabled' });
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await expect(page.getByRole('banner')).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

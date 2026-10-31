@@ -34,10 +34,23 @@ for (const tipo of ['doctor', 'especialidad']) {
     await page.goto(tipo === 'doctor' ? '/doctores/1' : '/especialidades/1/turnos');
     await page.getByRole('button', { name: '10:00', exact: true }).click();
     if (tipo === 'especialidad') {
-      const avatar = page.getByRole('dialog').getByRole('img', { name: 'Ana Test' });
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: '10:00', exact: true })).toHaveAttribute('aria-pressed', 'true');
+      const doctores = page.getByRole('region', { name: 'Elegí el doctor' });
+      await expect(doctores).toBeVisible();
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        const horarioBox = await page.getByRole('button', { name: '10:00', exact: true }).boundingBox();
+        const doctoresBox = await doctores.boundingBox();
+        expect(horarioBox).not.toBeNull();
+        expect(doctoresBox).not.toBeNull();
+        expect(doctoresBox!.y).toBeGreaterThanOrEqual(horarioBox!.y + horarioBox!.height);
+        expect(doctoresBox!.x + doctoresBox!.width).toBeLessThanOrEqual(width);
+      }
+      const avatar = doctores.getByRole('img', { name: 'Ana Test' });
       await expect(avatar).toHaveAttribute('src', doctor.foto);
       await expect.poll(() => avatar.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
-      await page.getByRole('button', { name: 'Dr./Dra. Ana Test' }).click();
+      await doctores.getByRole('button', { name: /Dr\.\/Dra\. Ana Test/ }).click();
     }
     await expect(page).toHaveURL(/\/registro$/);
     await expect(page.getByText('Creá una cuenta para reservar un turno.')).toBeVisible();

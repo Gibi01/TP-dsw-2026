@@ -1,13 +1,12 @@
 // src/Componentes/CalendarioTurnos.tsx
-// calendario para elegir la fecha de un turno. pinta de gris mas oscuro (y deshabilita)
-// los dias sin ningun horario libre, ademas de los dias anteriores a hoy
+// Los días disponibles tienen borde; los deshabilitados quedan atenuados.
 import { useEffect } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
 import { PickerDay, type PickerDayProps } from "@mui/x-date-pickers/PickerDay";
+import { Box, Typography } from '@mui/material';
 
-// dia del calendario con estilo propio: gris mas oscuro para los que estan deshabilitados
-// (pasados o sin disponibilidad), asi se distinguen de los que si se pueden elegir
+// El estado seleccionado conserva el relleno del color principal del tema.
 function DiaCalendario(props: PickerDayProps) {
   const esDiaDisponible = !props.disabled && !props.selected && !props.outsideCurrentMonth;
 
@@ -16,7 +15,7 @@ function DiaCalendario(props: PickerDayProps) {
       {...props}
       sx={
         props.disabled && !props.outsideCurrentMonth
-          ? { bgcolor: "grey.500", color: "common.white" }
+          ? { '&.Mui-disabled': { bgcolor: 'transparent', color: 'text.disabled' } }
           : esDiaDisponible
             ? {
                 border: 2,
@@ -55,7 +54,14 @@ export default function CalendarioTurnos({
   }, []);
 
   return (
+    <Box>
     <StaticDatePicker
+      sx={{ width: '100%', minWidth: 0, '& .MuiDateCalendar-root': { width: '100%', maxWidth: 340 },
+        '& .MuiPickersSlideTransition-root': { minHeight: 260 },
+        '& .MuiDayCalendar-weekDayLabel': { width: 'calc(100% / 7)', margin: 0 },
+        '& .MuiDayCalendar-weekContainer': { justifyContent: 'space-around' },
+        '& .MuiPickerDay-root': { width: 'min(40px, 12%)', height: 40, margin: 0 },
+      }}
       value={valor}
       onChange={(nuevaFecha: Dayjs | null) => {
         if (nuevaFecha) onCambiarFecha(nuevaFecha.format("YYYY-MM-DD"));
@@ -69,5 +75,9 @@ export default function CalendarioTurnos({
       slots={{ day: DiaCalendario }}
       slotProps={{ actionBar: { actions: [] } }}
     />
+    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+      Con borde: disponible · Relleno: seleccionado
+    </Typography>
+    </Box>
   );
 }

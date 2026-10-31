@@ -1,3 +1,4 @@
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
 // src/Paginas/Registro.tsx
 import { useState, type FormEvent } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
@@ -19,6 +20,8 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import type { RegistroUsuarioForm } from "../Tipos/dominio";
 import { registrar } from "../Servicios/authService";
+import { useAuth } from '../Contextos/AuthContext';
+import { destinoTrasAutenticacion } from '../Servicios/reservaPendiente';
 
 const initialForm: RegistroUsuarioForm = {
   nombre: "",
@@ -35,10 +38,12 @@ function capitalizar(valor: string): string {
 }
 
 interface LocationState {
+  from?: string;
   mensaje?: string;
 }
 
 export default function Registro() {
+  const { guardarSesion } = useAuth();
   const [form, setForm] = useState<RegistroUsuarioForm>(initialForm);
   const [errors, setErrors] = useState<Partial<Record<keyof RegistroUsuarioForm, string>>>({});
   const [errorApi, setErrorApi] = useState<string | null>(null);
@@ -80,10 +85,9 @@ export default function Registro() {
 
     setCargando(true);
     try {
-      await registrar(form);
-      navigate("/login", {
-        state: { mensaje: "Cuenta creada. Iniciá sesión para continuar.", tipoMensaje: "success" },
-      });
+      const usuario = await registrar(form);
+      guardarSesion(usuario);
+      navigate(destinoTrasAutenticacion(state.from), { replace: true });
     } catch (err) {
       setErrorApi(err instanceof Error ? err.message : "No se pudo completar el registro.");
     } finally {
@@ -93,10 +97,12 @@ export default function Registro() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
-      <Paper variant="outlined" sx={{ p: 4 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 4 } }}>
+        <EncabezadoPagina>
         <Typography variant="h4" component="h1" gutterBottom>
           Crear cuenta
         </Typography>
+        </EncabezadoPagina>
 
         {state.mensaje && (
           <Alert severity="info" sx={{ mb: 2 }}>
@@ -222,7 +228,7 @@ export default function Registro() {
 
           <Typography variant="body2" sx={{ mt: 2, textAlign: "center" }}>
             ¿Ya tenés cuenta?{" "}
-            <Link component={RouterLink} to="/login">
+            <Link component={RouterLink} to="/login" state={{ from: state.from }}>
               Iniciá sesión
             </Link>
           </Typography>

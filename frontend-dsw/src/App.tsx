@@ -14,6 +14,7 @@ import MiAgenda from "./Paginas/MiAgenda";
 import Perfil from "./Paginas/Perfil";
 import AdminCargaDatos from "./Paginas/AdminCargaDatos";
 import AdminModificarDatos from "./Paginas/AdminModificarDatos";
+import AdminUsuarios from './Paginas/AdminUsuarios';
 import RutaPrivada from "./Componentes/RutaPrivada";
 import RutaAdmin from "./Componentes/RutaAdmin";
 import RutaDoctor from "./Componentes/RutaDoctor";
@@ -21,6 +22,7 @@ import RutaDoctor from "./Componentes/RutaDoctor";
 function App() {
   return (
     <Routes>
+      <Route path="/admin/usuarios" element={<RutaAdmin><AdminUsuarios /></RutaAdmin>} />
       <Route path="/" element={<Inicio />} />
       <Route path="/reserva" element={<Especialidades />} />
       <Route path="/doctores" element={<Doctores />} />

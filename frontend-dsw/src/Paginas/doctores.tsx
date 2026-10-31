@@ -1,3 +1,4 @@
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
 // src/Paginas/doctores.tsx
 // busca por nombre/apellido y filtra por especialidad al mismo tiempo
 // si se llega desde Especialidades.tsx con ?especialidadId= ya viene preseleccionado
@@ -48,7 +49,7 @@ export default function Doctores() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getEspecialidades()
+    getEspecialidades(true)
       .then(setEspecialidades)
       .catch(() => setError("No se pudieron cargar las especialidades."));
   }, []);
@@ -82,15 +83,15 @@ export default function Doctores() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper variant="outlined" sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 4 }}>
+        <EncabezadoPagina><Typography variant="h4" component="h1" gutterBottom>
           Doctores
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           {tituloEspecialidad
             ? `Mostrando doctores de ${tituloEspecialidad}`
             : "Buscá un doctor por nombre o apellido, o filtrá por especialidad."}
-        </Typography>
+        </Typography></EncabezadoPagina>
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         <TextField
@@ -173,6 +174,8 @@ export default function Doctores() {
               </CardActionArea>
               <CardActions>
                 <Button
+                  variant="contained"
+                  sx={{ width: { xs: '100%', sm: 'auto' }, ml: { sm: 'auto' } }}
                   size="small"
                   startIcon={<EventAvailableIcon />}
                   onClick={() => irAlDetalle(doc.matricula)}

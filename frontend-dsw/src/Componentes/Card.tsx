@@ -1,111 +1,20 @@
-import {Link} from "react-router-dom";
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { Box, Typography } from '@mui/material';
+import ArrowForward from '@mui/icons-material/ArrowForward';
 
-export default function Card({
-  title = "titulo no definido",
-  description = "descripción no definida",
-  href = "#",
-  onClick,
-}: {
-  title?: string;
-  description?: string;
-  href?: string;
-  onClick?: () => void;
+export default function Card({ title = 'titulo no definido', description = 'descripción no definida', href = '#', onClick, icono }: {
+  title?: string; description?: string; href?: string; onClick?: () => void; icono?: ReactNode;
 }) {
-  return (
-    <Link
-      to={href}
-      onClick={
-        onClick
-          ? (e) => {
-              e.preventDefault();
-              onClick();
-            }
-          : undefined
-      }
-      className="
-        group
-        relative
-        inline-block
-        w-full
-        h-35
-        max-w-md
-        max-h-30
-        overflow-hidden
-        m-4
-        rounded
-        bg-[#f2f8f9]
-        px-6
-        py-5
-        no-underline
-      "
-    >
-      {/* Círculo animado */}
-      <span
-        className="
-          absolute
-          -right-4
-          -top-4
-          h-8
-          w-10
-          rounded-full
-         bg-[#8d6700]
-          transition-transform
-          duration-300
-          ease-out
-          group-hover:scale-[25]
-          z-0
-        "
-      />
-
-      {/* Contenido */}
-      <div className="relative z-10 ">
-        <p
-          className="
-            text-[20px]
-            font-semibold
-            leading-5
-            text-[#666]
-            transition-colors
-            duration-300
-            group-hover:text-white
-          "
-        >
-          {title}
-        </p>
-
-        <p
-          className="
-            mt-2
-            text-[18px]
-            text-[#666]
-            transition-colors
-            duration-300
-            group-hover:text-white/80
-          "
-        >
-          {description}
-        </p>
-      </div>
-
-      {/* Esquina */}
-      <div
-        className="
-          absolute
-          right-0
-          top-0
-          flex
-          h-8
-          w-9
-          items-center
-          justify-center
-          overflow-hidden
-          rounded-bl-[32px]
-          bg-[#8d6700]
-          z-20
-        "
-      >
-        <span className="-mr-1 -mt-1 text-white">→</span>
-      </div>
-    </Link>
-  );
+  return <Box component={Link} to={href} onClick={onClick ? e => { e.preventDefault(); onClick(); } : undefined}
+    sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 3, minHeight: 200, width: '100%',
+      textDecoration: 'none', color: 'primary.dark', bgcolor: 'primary.light', border: 1, borderColor: 'divider', borderRadius: 2,
+      '&:hover': { borderColor: 'primary.main' }, '&:focus-visible': { outline: '3px solid', outlineColor: 'info.main', outlineOffset: 3 } }}>
+    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+      {icono && <Box aria-hidden="true" sx={{ color: 'primary.main', '& svg': { fontSize: 36 } }}>{icono}</Box>}
+      <Typography component="h2" variant="h6">{title}</Typography>
+    </Box>
+    <Typography color="text.secondary">{description}</Typography>
+    <ArrowForward aria-hidden="true" sx={{ alignSelf: 'flex-end', mt: 'auto' }} />
+  </Box>;
 }

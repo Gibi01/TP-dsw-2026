@@ -4,6 +4,10 @@
 // ver la agenda es publico, para reservar hay que estar logueado
 
 import { useEffect, useState } from "react";
+import TituloSeccion from '../Componentes/TituloSeccion';
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
+import CalendarMonthOutlined from '@mui/icons-material/CalendarMonthOutlined';
+import AccessTimeOutlined from '@mui/icons-material/AccessTimeOutlined';
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Container,
@@ -15,13 +19,7 @@ import {
   Stack,
   CircularProgress,
   Alert,
-  MenuItem,
-  TextField,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import type { Doctor, ObraSocial } from "../Tipos/dominio";
@@ -33,8 +31,10 @@ import {
 } from "../Servicios/turnosService";
 import { getObrasSociales } from "../Servicios/obraSocialService";
 import { useAuth } from "../Contextos/AuthContext";
-import { formatearHora, formatearFechaHora } from "../Servicios/formatoFechaHora";
+import { formatearHora } from "../Servicios/formatoFechaHora";
+import ConfirmacionTurno from "../Componentes/ConfirmacionTurno";
 import CalendarioTurnos from "../Componentes/CalendarioTurnos";
+import { guardarReservaPendiente, leerReservaPendiente, borrarReservaPendiente } from '../Servicios/reservaPendiente';
 
 function hoyISO(): string {
   const hoy = new Date();
@@ -53,7 +53,7 @@ export default function DoctorDetalle() {
   const [loadingDoctor, setLoadingDoctor] = useState(true);
   const [errorDoctor, setErrorDoctor] = useState<string | null>(null);
 
-  const [fecha, setFecha] = useState(hoyISO());
+  const [fecha, setFecha] = useState(() => leerReservaPendiente(location.pathname)?.fecha ?? hoyISO());
   const [fechasConTurnos, setFechasConTurnos] = useState<Set<string>>(new Set());
   const [slots, setSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -65,6 +65,7 @@ export default function DoctorDetalle() {
 
   const [slotElegido, setSlotElegido] = useState<string | null>(null);
   const [reservando, setReservando] = useState(false);
+  const [confirmado, setConfirmado] = useState(false);
   const [errorReserva, setErrorReserva] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,16 +83,31 @@ export default function DoctorDetalle() {
 
   useEffect(() => {
     if (!matricula) return;
+    let cancelado = false;
     setLoadingSlots(true);
     setErrorSlots(null);
     getDisponibilidadDoctor(matriculaNum, fecha)
-      .then(setSlots)
-      .catch((err) =>
-        setErrorSlots(err instanceof Error ? err.message : "No se pudo obtener la disponibilidad.")
-      )
-      .finally(() => setLoadingSlots(false));
+      .then((disponibles) => {
+        if (cancelado) return;
+        setSlots(disponibles);
+        const pendiente = leerReservaPendiente(location.pathname);
+        if (!estaAutenticado || !pendiente || pendiente.fecha !== fecha) return;
+        if (pendiente.doctorId === matriculaNum && Date.parse(pendiente.horario) > Date.now()
+          && disponibles.includes(pendiente.horario)) {
+          setSlotElegido(pendiente.horario);
+          setObraSocialId(pendiente.obraSocialId);
+        } else {
+          borrarReservaPendiente();
+          setErrorSlots('El horario que elegiste ya no está disponible. Elegí otro horario.');
+        }
+      })
+      .catch((err) => {
+        if (!cancelado) setErrorSlots(err instanceof Error ? err.message : "No se pudo obtener la disponibilidad.");
+      })
+      .finally(() => { if (!cancelado) setLoadingSlots(false); });
+    return () => { cancelado = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matricula, fecha]);
+  }, [matricula, fecha, estaAutenticado]);
 
   useEffect(() => {
     setCargandoObrasSociales(true);
@@ -109,6 +125,7 @@ export default function DoctorDetalle() {
   };
 
   const elegirSlot = (slot: string) => {
+    guardarReservaPendiente({ ruta: location.pathname, fecha, doctorId: matriculaNum, horario: slot, obraSocialId: '' });
     if (!estaAutenticado) {
       navigate("/registro", {
         state: { from: location.pathname, mensaje: "Creá una cuenta para reservar un turno." },
@@ -121,7 +138,8 @@ export default function DoctorDetalle() {
   };
 
   const confirmarReserva = async () => {
-    if (!slotElegido || obraSocialId === "") return;
+    if (!slotElegido || obraSocialId === "" || reservando || confirmado) return;
+    guardarReservaPendiente({ ruta: location.pathname, fecha, doctorId: matriculaNum, horario: slotElegido, obraSocialId });
     setReservando(true);
     setErrorReserva(null);
     try {
@@ -130,7 +148,8 @@ export default function DoctorDetalle() {
         slotElegido,
         obraSocialId === "sin-obra-social" ? null : obraSocialId
       );
-      navigate("/mis-turnos");
+      borrarReservaPendiente();
+      setConfirmado(true);
     } catch (err) {
       setErrorReserva(err instanceof Error ? err.message : "No se pudo reservar el turno.");
     } finally {
@@ -156,8 +175,8 @@ export default function DoctorDetalle() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-        <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+        <EncabezadoPagina><Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
           <Avatar src={doctor.foto ?? undefined} alt={`${doctor.nombre} ${doctor.apellido}`} sx={{ bgcolor: "primary.main", width: 56, height: 56 }}>
             <PersonIcon />
           </Avatar>
@@ -180,26 +199,26 @@ export default function DoctorDetalle() {
               ))}
             </Stack>
           </Box>
-        </Stack>
+        </Stack></EncabezadoPagina>
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
           Turnos disponibles
         </Typography>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "380px minmax(0, 1fr)" }, gap: 3 }}>
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h6" component="h2" gutterBottom>Elegí una fecha</Typography>
+            <TituloSeccion icono={<CalendarMonthOutlined />}>Elegí una fecha</TituloSeccion>
             <CalendarioTurnos
               fecha={fecha}
-              onCambiarFecha={setFecha}
+              onCambiarFecha={(nuevaFecha) => { borrarReservaPendiente(); setFecha(nuevaFecha); }}
               fechasConTurnos={fechasConTurnos}
               onCambiarMes={cargarMesDisponible}
             />
           </Box>
           <Box sx={{ minWidth: 0, borderLeft: { md: 1 }, borderColor: { md: "divider" }, pl: { md: 3 } }}>
-            <Typography variant="h6" component="h2" gutterBottom>Horarios disponibles</Typography>
+            <TituloSeccion icono={<AccessTimeOutlined />}>Horarios disponibles</TituloSeccion>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {new Date(`${fecha}T00:00:00`).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
             </Typography>
@@ -239,57 +258,16 @@ export default function DoctorDetalle() {
         </Box>
       </Paper>
 
-      <Dialog open={slotElegido !== null} onClose={() => setSlotElegido(null)}>
-        <DialogTitle>Confirmar turno</DialogTitle>
-        <DialogContent>
-          {errorReserva && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {errorReserva}
-            </Alert>
-          )}
-          {slotElegido && (
-            <Typography sx={{ mb: 2 }}>
-              Turno con Dr./Dra. {doctor.nombre} {doctor.apellido} el{" "}
-              {formatearFechaHora(slotElegido)}.
-            </Typography>
-          )}
-          {cargandoObrasSociales && <CircularProgress size={24} />}
-          {!cargandoObrasSociales && (
-            <TextField
-              select
-              fullWidth
-              label="Obra social a usar en este turno"
-              value={obraSocialId}
-              onChange={(e) => {
-                const valor = e.target.value;
-                setObraSocialId(
-                  valor === "" || valor === "sin-obra-social" ? valor : Number(valor)
-                );
-              }}
-            >
-              <MenuItem value="" disabled>
-                Elegí una opción
-              </MenuItem>
-              <MenuItem value="sin-obra-social">Sin obra social</MenuItem>
-              {obrasSociales.map((os) => (
-                <MenuItem key={os.id} value={os.id}>
-                  {os.nombre}
-                </MenuItem>
-              ))}
-            </TextField>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSlotElegido(null)}>Cancelar</Button>
-          <Button
-            variant="contained"
-            onClick={confirmarReserva}
-            disabled={reservando || cargandoObrasSociales || obraSocialId === ""}
-          >
-            {reservando ? <CircularProgress size={20} color="inherit" /> : "Confirmar"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {doctor && slotElegido && <ConfirmacionTurno
+        doctor={doctor} horario={slotElegido} obrasSociales={obrasSociales} obraSocialId={obraSocialId}
+        cargandoObrasSociales={cargandoObrasSociales} reservando={reservando} confirmado={confirmado} error={errorReserva}
+        onObraSocial={(seleccion) => {
+          setObraSocialId(seleccion);
+          guardarReservaPendiente({ ruta: location.pathname, fecha, doctorId: doctor.matricula, horario: slotElegido, obraSocialId: seleccion });
+        }}
+        onConfirmar={confirmarReserva}
+        onCancelar={() => { borrarReservaPendiente(); setSlotElegido(null); }}
+      />}
     </Container>
   );
 }

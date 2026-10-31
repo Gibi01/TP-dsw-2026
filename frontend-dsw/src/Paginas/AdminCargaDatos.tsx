@@ -1,3 +1,4 @@
+import EncabezadoPagina from '../Componentes/EncabezadoPagina';
 // src/Paginas/AdminCargaDatos.tsx
 // pagina de admin para el alta de especialidades, doctores y agendas
 // solo entra un admin (RutaAdmin)
@@ -18,6 +19,7 @@ import {
   Stack,
 } from "@mui/material";
 import type { Doctor, Especialidad } from "../Tipos/dominio";
+import SelectorIconoEspecialidad from '../Componentes/SelectorIconoEspecialidad';
 import { getEspecialidades, crearEspecialidad } from "../Servicios/especialidadesService";
 import { getDoctores, crearDoctor } from "../Servicios/doctoresService";
 import { crearAgenda } from "../Servicios/agendaService";
@@ -52,12 +54,14 @@ export default function AdminCargaDatos() {
     <Container maxWidth="sm" sx={{ py: 4 }}>
       <Paper variant="outlined">
         <Box sx={{ p: 3, pb: 0 }}>
+        <EncabezadoPagina>
           <Typography variant="h4" component="h1" gutterBottom>
             Cargar datos
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Alta de especialidades, doctores, agendas, obras sociales y motivos de cancelación.
           </Typography>
+        </EncabezadoPagina>
         </Box>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" sx={{ mt: 2 }}>
           <Tab label="Especialidad" />
@@ -80,6 +84,7 @@ export default function AdminCargaDatos() {
 
 function FormEspecialidad({ onCreada }: { onCreada: () => void }) {
   const [descripcionEsp, setDescripcionEsp] = useState("");
+  const [icono, setIcono] = useState('medicina');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
@@ -94,8 +99,9 @@ function FormEspecialidad({ onCreada }: { onCreada: () => void }) {
     }
     setGuardando(true);
     try {
-      await crearEspecialidad({ descripcionEsp: descripcionEsp.trim() });
+      await crearEspecialidad({ descripcionEsp: descripcionEsp.trim(), icono });
       setDescripcionEsp("");
+      setIcono('medicina');
       setOk(true);
       onCreada();
     } catch (err) {
@@ -124,6 +130,7 @@ function FormEspecialidad({ onCreada }: { onCreada: () => void }) {
         value={descripcionEsp}
         onChange={(e) => setDescripcionEsp(e.target.value)}
       />
+      <SelectorIconoEspecialidad valor={icono} onChange={setIcono} nombre={descripcionEsp} disabled={guardando} />
       <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={guardando}>
         {guardando ? <CircularProgress size={24} color="inherit" /> : "Crear especialidad"}
       </Button>
