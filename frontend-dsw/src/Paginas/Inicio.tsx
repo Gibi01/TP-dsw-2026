@@ -13,7 +13,7 @@ import IconoEspecialidad from '../Componentes/IconoEspecialidad';
 import { getEspecialidades } from '../Servicios/especialidadesService';
 import type { Especialidad } from '../Tipos/dominio';
 
-const DIRECCION = 'Rostok, La Zona';
+const DIRECCION = 'Silent Hill, Estados Unidos';
 // Número ficticio para la demostración; no habilitar llamadas reales.
 const TELEFONO = '011-0000-0000';
 const pasos = [
